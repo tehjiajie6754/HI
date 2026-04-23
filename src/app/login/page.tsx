@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@/contexts/UserContext'
-import Iridescence from '@/components/backgrounds/Iridescence'
+
 
 // Global liveness state
 let faceLandmarker: any = null
@@ -255,7 +255,15 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      <Iridescence color={[1, 1, 1]} mouseReact={false} amplitude={0.1} speed={1.0} className="absolute inset-0" />
+      {/* Globe World Tour background via iframe */}
+      <iframe
+        src="/globe-bg-login.html"
+        className="absolute inset-0 w-full h-full border-0"
+        style={{ zIndex: 0, pointerEvents: 'none' }}
+        title="Globe Background"
+        aria-hidden="true"
+        tabIndex={-1}
+      />
 
       <style>{`video { transform: rotateY(180deg); } canvas.mirror { transform: rotateY(180deg); } .invisible { opacity: 0.15; pointer-events: none; }`}</style>
 
@@ -263,11 +271,11 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2">
-            <span className="bg-gradient-to-r from-black via-purple-800 to-blue-800 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-white via-purple-300 to-cyan-300 bg-clip-text text-transparent">
               🔐 Secure Login
             </span>
           </h1>
-          <p className="text-gray-600">Complete face liveness verification to access your account</p>
+          <p className="text-white/70">Complete face liveness verification to access your account</p>
         </div>
 
         <section ref={demosSectionRef} className="invisible transition-opacity duration-500">

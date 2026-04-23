@@ -1,0 +1,1243 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Zen Travel — A Journey Around the World</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --gold: #C9A84C;
+      --gold-soft: #E3C77A;
+      --charcoal: #1A1A2E;
+      --night: #0A0A1A;
+      --ink: #14142B;
+      --mist: rgba(255, 255, 255, .72);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    html,
+    body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background: var(--night);
+      color: #fff;
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased
+    }
+
+    canvas {
+      display: block
+    }
+
+    /* Three.js canvas stays behind UI */
+    #three-root {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none
+    }
+
+    /* Vignette on top of globe so UI pops */
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at center, transparent 40%, rgba(10, 10, 26, .55) 85%, rgba(10, 10, 26, .92) 100%);
+      mix-blend-mode: multiply;
+    }
+
+    /* Wordmark */
+    .wordmark {
+      position: fixed;
+      top: 36px;
+      left: 44px;
+      z-index: 10;
+      font-family: 'Playfair Display', serif;
+      color: var(--gold);
+      letter-spacing: .04em;
+      pointer-events: none;
+    }
+
+    .wordmark .zt {
+      display: block;
+      font-size: 30px;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .wordmark .zt em {
+      font-style: italic;
+      font-weight: 400
+    }
+
+    .wordmark .tag {
+      display: block;
+      margin-top: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      letter-spacing: .42em;
+      text-transform: uppercase;
+      color: rgba(201, 168, 76, .75);
+      font-weight: 500;
+    }
+
+    .wordmark .rule {
+      width: 34px;
+      height: 1px;
+      background: var(--gold);
+      margin-top: 10px;
+      opacity: .7;
+    }
+
+    /* Top-right meta */
+    .meta {
+      position: fixed;
+      top: 40px;
+      right: 44px;
+      z-index: 10;
+      text-align: right;
+      font-size: 10px;
+      letter-spacing: .38em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .45);
+      pointer-events: none;
+    }
+
+    .meta .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: flex-end
+    }
+
+    .meta .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 10px var(--gold)
+    }
+
+    .meta .num {
+      margin-top: 14px;
+      font-family: 'Playfair Display', serif;
+      font-size: 42px;
+      letter-spacing: 0;
+      text-transform: none;
+      color: #fff;
+      font-weight: 400;
+      line-height: 1;
+    }
+
+    .meta .num .slash {
+      color: rgba(255, 255, 255, .35);
+      margin: 0 4px;
+      font-style: italic
+    }
+
+    .meta .num .tot {
+      color: rgba(255, 255, 255, .45);
+      font-size: 22px;
+      font-style: italic
+    }
+
+    /* Country Name — centered top */
+    .destination {
+      position: fixed;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      text-align: center;
+      pointer-events: none;
+      width: min(900px, 80vw);
+    }
+
+    .destination .eyebrow {
+      font-size: 11px;
+      letter-spacing: .5em;
+      text-transform: uppercase;
+      color: var(--gold);
+      opacity: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .destination .eyebrow .line {
+      width: 30px;
+      height: 1px;
+      background: var(--gold);
+      opacity: .6
+    }
+
+    .destination h1 {
+      margin-top: 14px;
+      font-family: 'Playfair Display', serif;
+      font-weight: 400;
+      font-size: clamp(48px, 6vw, 92px);
+      line-height: 1.04;
+      color: #fff;
+      letter-spacing: .005em;
+      opacity: 0;
+    }
+
+    .destination h1 em {
+      font-style: italic;
+      color: var(--gold-soft);
+      font-weight: 400
+    }
+
+    .destination .underline {
+      height: 1px;
+      width: 0;
+      background: var(--gold);
+      margin: 18px auto 0;
+      box-shadow: 0 0 12px rgba(201, 168, 76, .6);
+    }
+
+    .destination .flag {
+      margin-top: 16px;
+      font-size: 22px;
+      opacity: 0;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, .6);
+      letter-spacing: .3em;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .destination .flag .emoji {
+      font-size: 26px;
+      letter-spacing: 0
+    }
+
+    /* Progress bar */
+    .progress {
+      position: fixed;
+      left: 50%;
+      bottom: 48px;
+      transform: translateX(-50%);
+      z-index: 10;
+      width: min(900px, 72vw);
+      pointer-events: none;
+    }
+
+    .progress .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 14px;
+      font-size: 10px;
+      letter-spacing: .42em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .5);
+    }
+
+    .progress .label-row .now {
+      color: var(--gold);
+      font-weight: 600
+    }
+
+    .progress .track {
+      position: relative;
+      height: 1px;
+      background: rgba(255, 255, 255, .14);
+      border-radius: 1px;
+    }
+
+    .progress .fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-soft), var(--gold));
+      box-shadow: 0 0 10px rgba(201, 168, 76, .7);
+      width: 0%;
+      border-radius: 1px;
+    }
+
+    .progress .dots {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .progress .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .2);
+      transition: all .5s ease;
+      position: relative;
+    }
+
+    .progress .dot.done {
+      background: rgba(201, 168, 76, .55)
+    }
+
+    .progress .dot.now {
+      background: var(--gold);
+      box-shadow: 0 0 0 4px rgba(201, 168, 76, .18), 0 0 18px rgba(201, 168, 76, .9);
+      transform: scale(1.6);
+    }
+
+    .progress .caption {
+      margin-top: 14px;
+      text-align: center;
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 12px;
+      color: rgba(255, 255, 255, .45);
+      letter-spacing: .04em;
+    }
+
+    /* Bottom-left hint */
+    .corner {
+      position: fixed;
+      bottom: 52px;
+      left: 44px;
+      z-index: 10;
+      pointer-events: none;
+      font-size: 10px;
+      letter-spacing: .42em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .3);
+    }
+
+    .corner .pulse {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ff5c5c;
+      margin-right: 10px;
+      vertical-align: middle;
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(255, 92, 92, .6)
+      }
+
+      50% {
+        opacity: .5;
+        box-shadow: 0 0 0 6px rgba(255, 92, 92, 0)
+      }
+    }
+
+    /* Bottom-right chapter */
+    .chapter {
+      position: fixed;
+      bottom: 52px;
+      right: 44px;
+      z-index: 10;
+      pointer-events: none;
+      text-align: right;
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 13px;
+      color: rgba(255, 255, 255, .45);
+    }
+
+    .chapter .cap {
+      display: block;
+      font-family: 'Inter', sans-serif;
+      font-style: normal;
+      font-size: 9px;
+      letter-spacing: .42em;
+      text-transform: uppercase;
+      color: rgba(201, 168, 76, .6);
+      margin-bottom: 6px;
+    }
+
+    /* Loading */
+    #loader {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--night);
+      transition: opacity 1s ease;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    #loader.hidden {
+      opacity: 0;
+      pointer-events: none
+    }
+
+    #loader .mark {
+      font-family: 'Playfair Display', serif;
+      color: var(--gold);
+      font-size: 36px;
+      letter-spacing: .04em;
+    }
+
+    #loader .mark em {
+      font-style: italic;
+      font-weight: 400
+    }
+
+    #loader .bar {
+      width: 160px;
+      height: 1px;
+      background: rgba(201, 168, 76, .2);
+      position: relative;
+      overflow: hidden
+    }
+
+    #loader .bar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--gold);
+      animation: load 1.4s ease-in-out infinite;
+    }
+
+    @keyframes load {
+      0% {
+        transform: translateX(-100%)
+      }
+
+      100% {
+        transform: translateX(100%)
+      }
+    }
+
+    #loader .hint {
+      font-size: 10px;
+      letter-spacing: .42em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .4)
+    }
+
+    /* Hidden elements for embedded background mode */
+    .wordmark {
+      display: none !important
+    }
+
+    .meta {
+      display: none !important
+    }
+
+    .chapter {
+      display: none !important
+    }
+
+    #loader {
+      display: none !important
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="three-root"></div>
+  <div class="vignette"></div>
+
+  <div class="wordmark">
+    <span class="zt">Zen <em>Travel</em></span>
+    <span class="rule"></span>
+    <span class="tag">Journeys in Stillness</span>
+  </div>
+
+  <div class="meta">
+    <div class="row"><span>Live Atlas</span><span class="dot"></span></div>
+    <div class="num"><span id="cur-num">01</span><span class="slash">/</span><span class="tot">17</span></div>
+  </div>
+
+  <div class="destination" id="destination">
+    <div class="eyebrow" id="eyebrow"><span class="line"></span><span id="eyebrow-text">Chapter I</span><span
+        class="line"></span></div>
+    <h1 id="country-name">Malaysia</h1>
+    <div class="underline" id="underline"></div>
+    <div class="flag" id="country-sub"><span class="emoji">🇲🇾</span><span id="country-en">Kuala Lumpur · South-East
+        Asia</span></div>
+  </div>
+
+  <div class="progress">
+    <div class="label-row">
+      <span>The Itinerary</span>
+      <span class="now" id="now-label">Malaysia</span>
+    </div>
+    <div class="track">
+      <div class="fill" id="fill"></div>
+      <div class="dots" id="dots"></div>
+    </div>
+    <div class="caption">A seventeen-stop journey around the world</div>
+  </div>
+
+  <div class="corner"><span class="pulse"></span>Now Touring</div>
+  <div class="chapter">
+    <span class="cap">Presented by</span>
+    Zen Travel <em>Atlas</em>
+  </div>
+
+  <div id="loader">
+    <div class="mark">Zen <em>Travel</em></div>
+    <div class="bar"></div>
+    <div class="hint">Preparing the Journey</div>
+  </div>
+
+  <!-- Three.js + GSAP -->
+  <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/gsap@3.12.5/dist/gsap.min.js"></script>
+
+  <script>
+    /* ============================================================
+       ZEN TRAVEL — World Tour
+       ============================================================ */
+
+    /* --- Destinations ------------------------------------------- */
+    const DESTINATIONS = [
+      {
+        country: "Malaysia", flag: "🇲🇾", sub: "Kuala Lumpur · South-East Asia", lat: 3.1390, lon: 101.6869,
+        landmarks: [
+          { icon: "🏙️", name: "Petronas Twin Towers", fact: "Was the world's tallest building from 1998 to 2004." },
+          { icon: "🕳️", name: "Batu Caves", fact: "The limestone caves are over 400 million years old." }
+        ]
+      },
+      {
+        country: "Japan", flag: "🇯🇵", sub: "Honshū · East Asia", lat: 35.6762, lon: 139.6503,
+        landmarks: [
+          { icon: "🗻", name: "Mount Fuji", fact: "Japan's highest peak at 3,776m — last erupted in 1707." },
+          { icon: "⛩️", name: "Fushimi Inari", fact: "Over 10,000 vermilion torii gates wind up the mountain." }
+        ]
+      },
+      {
+        country: "Canada", flag: "🇨🇦", sub: "Ontario & Alberta · North America", lat: 51.2538, lon: -85.3232,
+        landmarks: [
+          { icon: "💦", name: "Niagara Falls", fact: "Over 3,160 tonnes of water flow over it every second." },
+          { icon: "🏔️", name: "Banff National Park", fact: "Canada's oldest national park, established in 1885." }
+        ]
+      },
+      {
+        country: "China", flag: "🇨🇳", sub: "Beijing · East Asia", lat: 39.9042, lon: 116.4074,
+        landmarks: [
+          { icon: "🧱", name: "Great Wall of China", fact: "Stretches over 21,000 km across northern China." },
+          { icon: "🏯", name: "Forbidden City", fact: "Home to 24 emperors over nearly 500 years." }
+        ]
+      },
+      {
+        country: "London", flag: "🇬🇧", sub: "United Kingdom · Europe", lat: 51.5074, lon: -0.1278,
+        landmarks: [
+          { icon: "🕰️", name: "Big Ben", fact: "The clock has kept time since 1859 with remarkable accuracy." },
+          { icon: "🌉", name: "Tower Bridge", fact: "Opens up to 1,000 times per year for river traffic." }
+        ]
+      },
+      {
+        country: "Paris", flag: "🇫🇷", sub: "France · Western Europe", lat: 48.8566, lon: 2.3522,
+        landmarks: [
+          { icon: "🗼", name: "Eiffel Tower", fact: "Originally built as a temporary structure in 1889." },
+          { icon: "🖼️", name: "Louvre Museum", fact: "The world's largest art museum with 380,000 objects." }
+        ]
+      },
+      {
+        country: "America", flag: "🇺🇸", sub: "United States · North America", lat: 39.8283, lon: -98.5795,
+        landmarks: [
+          { icon: "🏜️", name: "Grand Canyon", fact: "Carved by the Colorado River over 5–6 million years." },
+          { icon: "🗽", name: "Statue of Liberty", fact: "A gift from France, completed in 1886." }
+        ]
+      },
+      {
+        country: "South Korea", flag: "🇰🇷", sub: "Seoul · East Asia", lat: 37.5665, lon: 126.9780,
+        landmarks: [
+          { icon: "🏯", name: "Gyeongbokgung Palace", fact: "Built in 1395, destroyed and rebuilt multiple times." },
+          { icon: "🗼", name: "N Seoul Tower", fact: "Couples attach padlocks here as a symbol of love." }
+        ]
+      },
+      {
+        country: "Singapore", flag: "🇸🇬", sub: "City-State · South-East Asia", lat: 1.3521, lon: 103.8198,
+        landmarks: [
+          { icon: "🏨", name: "Marina Bay Sands", fact: "The rooftop infinity pool is 57 floors above the ground." },
+          { icon: "🌳", name: "Gardens by the Bay", fact: "The Supertrees are 25–50m tall and harvest solar energy." }
+        ]
+      },
+      {
+        country: "Australia", flag: "🇦🇺", sub: "Sydney & Queensland · Oceania", lat: -25.2744, lon: 133.7751,
+        landmarks: [
+          { icon: "🎭", name: "Sydney Opera House", fact: "Took 14 years to build and opened in 1973." },
+          { icon: "🐠", name: "Great Barrier Reef", fact: "The world's largest coral reef system, visible from space." }
+        ]
+      },
+      {
+        country: "England", flag: "🏴", sub: "Wiltshire & London · Europe", lat: 52.3555, lon: -1.1743,
+        landmarks: [
+          { icon: "🗿", name: "Stonehenge", fact: "The stones were transported from over 200 miles away." },
+          { icon: "👑", name: "Buckingham Palace", fact: "Has 775 rooms and 1,514 doors." }
+        ]
+      },
+      {
+        country: "Egypt", flag: "🇪🇬", sub: "Giza · North Africa", lat: 29.9792, lon: 31.1342,
+        landmarks: [
+          { icon: "🔺", name: "Pyramids of Giza", fact: "The Great Pyramid was Earth's tallest structure for 3,800 years." },
+          { icon: "🦁", name: "The Sphinx", fact: "Carved from a single mass of limestone bedrock." }
+        ]
+      },
+      {
+        country: "Poland", flag: "🇵🇱", sub: "Kraków · Central Europe", lat: 50.0647, lon: 19.9450,
+        landmarks: [
+          { icon: "🏰", name: "Wawel Castle", fact: "One of Poland's most historically significant royal residences." },
+          { icon: "⛪", name: "Wieliczka Salt Mine", fact: "An underground city with chapels carved entirely from salt." }
+        ]
+      },
+      {
+        country: "Spain", flag: "🇪🇸", sub: "Barcelona & Granada · Iberia", lat: 40.4637, lon: -3.7492,
+        landmarks: [
+          { icon: "⛪", name: "Sagrada Família", fact: "Still under construction after more than 140 years." },
+          { icon: "🏛️", name: "Alhambra Palace", fact: "A stunning Moorish fortress built in the 13th century." }
+        ]
+      },
+      {
+        country: "Venice, Italy", flag: "🇮🇹", sub: "Veneto · Mediterranean Europe", lat: 45.4408, lon: 12.3155,
+        landmarks: [
+          { icon: "🚤", name: "Grand Canal", fact: "Venice's main waterway, lined with over 170 buildings." },
+          { icon: "⛪", name: "St. Mark's Basilica", fact: "Took over 1,000 years to complete its decorations." }
+        ]
+      },
+      {
+        country: "Turkey", flag: "🇹🇷", sub: "Istanbul & Cappadocia · Anatolia", lat: 38.9637, lon: 35.2433,
+        landmarks: [
+          { icon: "🕌", name: "Hagia Sophia", fact: "Has served as a church, mosque, museum, and mosque again." },
+          { icon: "🎈", name: "Cappadocia", fact: "Famous for hot-air balloon rides over fairy-chimney rock formations." }
+        ]
+      },
+      {
+        country: "Bali", flag: "🇮🇩", sub: "Indonesia · South-East Asia", lat: -8.4095, lon: 115.1889,
+        landmarks: [
+          { icon: "🛕", name: "Tanah Lot Temple", fact: "A sea temple perched on a rocky offshore islet." },
+          { icon: "🌾", name: "Tegallalang Rice Terraces", fact: "A UNESCO-listed ancient irrigation system called Subak." }
+        ]
+      },
+    ];
+
+    /* --- Three.js ----------------------------------------------- */
+    const GLOBE_RADIUS = 2;
+    const CAM_FAR = 4.9;   // mid-flight distance
+    const CAM_NEAR = 3.2;  // arrival distance
+    const CAM_START = 5.0;
+
+    const root = document.getElementById('three-root');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0A0A1A);
+    scene.fog = new THREE.FogExp2(0x0A0A1A, 0.035);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, CAM_START);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    root.appendChild(renderer.domElement);
+
+    /* Lighting */
+    const ambient = new THREE.AmbientLight(0x889bb6, 0.35);
+    scene.add(ambient);
+    const sun = new THREE.DirectionalLight(0xfff1d6, 1.4);
+    sun.position.set(5, 2, 5);
+    scene.add(sun);
+    const rim = new THREE.DirectionalLight(0x6fa8ff, 0.5);
+    rim.position.set(-5, -2, -3);
+    scene.add(rim);
+
+    /* Globe */
+    const globeGroup = new THREE.Group();
+    scene.add(globeGroup);
+
+    const loader = new THREE.TextureLoader();
+    loader.crossOrigin = 'anonymous';
+
+    let globeReady = false;
+    const earthTex = loader.load(
+      'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
+      () => { globeReady = true; hideLoader(); },
+      undefined,
+      () => { globeReady = true; hideLoader(); }
+    );
+    earthTex.colorSpace = THREE.SRGBColorSpace;
+
+    const cloudTex = loader.load(
+      'https://unpkg.com/three-globe/example/img/earth-water.png'
+    );
+
+    const globeMat = new THREE.MeshPhongMaterial({
+      map: earthTex,
+      shininess: 12,
+      specular: new THREE.Color(0x222244),
+    });
+    const globe = new THREE.Mesh(
+      new THREE.SphereGeometry(GLOBE_RADIUS, 96, 96),
+      globeMat
+    );
+    globeGroup.add(globe);
+
+    /* Clouds layer (faint, slightly faster rotation) */
+    const clouds = new THREE.Mesh(
+      new THREE.SphereGeometry(GLOBE_RADIUS * 1.012, 64, 64),
+      new THREE.MeshPhongMaterial({
+        map: cloudTex,
+        transparent: true,
+        opacity: 0.22,
+        depthWrite: false
+      })
+    );
+    globeGroup.add(clouds);
+
+    /* Atmosphere glow */
+    const atmosphereMat = new THREE.ShaderMaterial({
+      vertexShader: `
+    varying vec3 vN;
+    void main(){
+      vN = normalize(normalMatrix * normal);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+    }`,
+      fragmentShader: `
+    varying vec3 vN;
+    void main(){
+      float intensity = pow(0.72 - dot(vN, vec3(0.0,0.0,1.0)), 2.2);
+      vec3 col = mix(vec3(0.35,0.55,0.95), vec3(0.75,0.85,1.0), intensity);
+      gl_FragColor = vec4(col, 1.0) * intensity;
+    }`,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
+      transparent: true,
+    });
+    const atmosphere = new THREE.Mesh(
+      new THREE.SphereGeometry(GLOBE_RADIUS * 1.15, 64, 64),
+      atmosphereMat
+    );
+    scene.add(atmosphere);
+
+    /* Starfield */
+    function makeStars(count) {
+      const g = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+      const sizes = new Float32Array(count);
+      const phases = new Float32Array(count);
+      for (let i = 0; i < count; i++) {
+        // random direction on a large sphere
+        const r = 60 + Math.random() * 40;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        positions[i * 3 + 0] = r * Math.sin(phi) * Math.cos(theta);
+        positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        positions[i * 3 + 2] = r * Math.cos(phi);
+        sizes[i] = Math.random() * 1.8 + 0.3;
+        phases[i] = Math.random() * Math.PI * 2;
+      }
+      g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      g.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+      g.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+      const m = new THREE.ShaderMaterial({
+        uniforms: { uTime: { value: 0 }, uPx: { value: renderer.getPixelRatio() } },
+        vertexShader: `
+      attribute float aSize;
+      attribute float aPhase;
+      uniform float uTime;
+      uniform float uPx;
+      varying float vFlick;
+      void main(){
+        vec4 mv = modelViewMatrix * vec4(position,1.0);
+        vFlick = 0.55 + 0.45*sin(uTime*1.2 + aPhase*3.0);
+        gl_PointSize = aSize * (220.0/ -mv.z) * uPx;
+        gl_Position = projectionMatrix * mv;
+      }`,
+        fragmentShader: `
+      varying float vFlick;
+      void main(){
+        vec2 p = gl_PointCoord - vec2(0.5);
+        float d = length(p);
+        float a = smoothstep(0.5, 0.0, d);
+        gl_FragColor = vec4(vec3(1.0), a * vFlick);
+      }`,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      return new THREE.Points(g, m);
+    }
+    const stars = makeStars(1800);
+    scene.add(stars);
+
+    /* Helpers: lat/lon -> 3D, spherical */
+    function latLonToVec3(lat, lon, radius = GLOBE_RADIUS) {
+      const phi = (90 - lat) * Math.PI / 180;
+      const theta = (lon + 180) * Math.PI / 180;
+      return new THREE.Vector3(
+        -radius * Math.sin(phi) * Math.cos(theta),
+        radius * Math.cos(phi),
+        radius * Math.sin(phi) * Math.sin(theta)
+      );
+    }
+    function latLonToSpherical(lat, lon, radius) {
+      // camera orbits so that (lat,lon) faces +z
+      // we convert to spherical where phi from +Y axis
+      const phi = (90 - lat) * Math.PI / 180;
+      // We want camera to look at point from outside; theta is longitude around Y.
+      // For camera, choose position along the surface-normal direction scaled to `radius`.
+      const theta = (lon + 180) * Math.PI / 180;
+      const s = new THREE.Spherical(radius, phi, theta);
+      return s;
+    }
+    function sphericalToVec3(s) {
+      const v = new THREE.Vector3();
+      v.setFromSpherical(s);
+      // Our lat/lon mapping used -sin*cos; mirror to keep point on +face of camera
+      v.x = -v.x;
+      return v;
+    }
+
+    /* Flight arc & airplane */
+    const arcGroup = new THREE.Group();
+    scene.add(arcGroup);
+
+    let currentArc = null;
+    let currentPlane = null;
+
+    function makeGreatCirclePoints(from, to, steps = 96, liftMax = 0.55) {
+      // Slerp along great circle, add altitude bump
+      const a = from.clone().normalize();
+      const b = to.clone().normalize();
+      const dot = Math.min(1, Math.max(-1, a.dot(b)));
+      const omega = Math.acos(dot);
+      const sinO = Math.sin(omega);
+      const pts = [];
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        let v;
+        if (sinO < 1e-4) {
+          v = a.clone().lerp(b, t);
+        } else {
+          const w1 = Math.sin((1 - t) * omega) / sinO;
+          const w2 = Math.sin(t * omega) / sinO;
+          v = a.clone().multiplyScalar(w1).add(b.clone().multiplyScalar(w2));
+        }
+        // lift up — bell curve
+        const lift = Math.sin(t * Math.PI) * liftMax;
+        const r = GLOBE_RADIUS + 0.02 + lift;
+        v.normalize().multiplyScalar(r);
+        pts.push(v);
+      }
+      return pts;
+    }
+
+    function buildArc(points, progress = 1) {
+      // progress 0..1 portion of arc drawn
+      const n = Math.max(2, Math.floor(points.length * progress));
+      const sub = points.slice(0, n);
+      const geom = new THREE.BufferGeometry().setFromPoints(sub);
+      const mat = new THREE.LineDashedMaterial({
+        color: 0xC9A84C,
+        dashSize: 0.08,
+        gapSize: 0.04,
+        transparent: true,
+        opacity: 0.95,
+        linewidth: 2
+      });
+      const line = new THREE.Line(geom, mat);
+      line.computeLineDistances();
+      return line;
+    }
+
+    function makePlaneSprite() {
+      // canvas-based sprite — white airplane icon
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, 128, 128);
+      // subtle glow
+      ctx.shadowColor = 'rgba(255,255,255,.9)';
+      ctx.shadowBlur = 18;
+      // draw a simple white plane silhouette pointing UP (+Y in canvas = -Y screen)
+      // We'll treat "up in texture" as "forward" for the sprite.
+      ctx.fillStyle = '#ffffff';
+      ctx.translate(64, 64);
+      // body
+      ctx.beginPath();
+      ctx.moveTo(0, -42);                 // nose
+      ctx.lineTo(6, -10);
+      ctx.lineTo(40, 8);                  // right wing tip
+      ctx.lineTo(40, 18);
+      ctx.lineTo(6, 10);
+      ctx.lineTo(6, 30);                  // right tail
+      ctx.lineTo(16, 38);
+      ctx.lineTo(16, 44);
+      ctx.lineTo(0, 38);                  // rear center
+      ctx.lineTo(-16, 44);
+      ctx.lineTo(-16, 38);
+      ctx.lineTo(-6, 30);
+      ctx.lineTo(-6, 10);
+      ctx.lineTo(-40, 18);                // left wing
+      ctx.lineTo(-40, 8);
+      ctx.lineTo(-6, -10);
+      ctx.closePath();
+      ctx.fill();
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const mat = new THREE.SpriteMaterial({
+        map: tex, transparent: true, depthWrite: false, depthTest: false
+      });
+      const s = new THREE.Sprite(mat);
+      s.renderOrder = 999;
+      s.scale.set(0.14, 0.14, 1);
+      return s;
+    }
+
+    /* --- UI helpers --------------------------------------------- */
+    const elCountry = document.getElementById('country-name');
+    const elCountryEn = document.getElementById('country-en');
+    const elFlag = document.querySelector('#country-sub .emoji');
+    const elEyebrow = document.getElementById('eyebrow-text');
+    const elUnderline = document.getElementById('underline');
+    const elDestinationH1 = elCountry;
+    const elFlagRow = document.getElementById('country-sub');
+    const elEyebrowRow = document.getElementById('eyebrow');
+    const elFill = document.getElementById('fill');
+    const elDots = document.getElementById('dots');
+    const elCurNum = document.getElementById('cur-num');
+    const elNowLabel = document.getElementById('now-label');
+    const elLoader = document.getElementById('loader');
+
+    function hideLoader() {
+      setTimeout(() => { elLoader.classList.add('hidden'); }, 800);
+    }
+
+    /* Build progress dots */
+    DESTINATIONS.forEach((_, i) => {
+      const d = document.createElement('span');
+      d.className = 'dot';
+      d.dataset.idx = i;
+      elDots.appendChild(d);
+    });
+
+    function updateProgress(idx) {
+      const pct = (idx / (DESTINATIONS.length - 1)) * 100;
+      gsap.to(elFill, { width: pct + '%', duration: 1.1, ease: 'power2.out' });
+      [...elDots.children].forEach((d, i) => {
+        d.classList.remove('now', 'done');
+        if (i < idx) d.classList.add('done');
+        if (i === idx) d.classList.add('now');
+      });
+      elCurNum.textContent = String(idx + 1).padStart(2, '0');
+      elNowLabel.textContent = DESTINATIONS[idx].country;
+    }
+
+    function romanize(n) {
+      const r = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII'];
+      return r[n] || String(n + 1);
+    }
+
+    function showDestinationText(dest, idx) {
+      elCountry.textContent = dest.country;
+      elCountryEn.textContent = dest.sub;
+      elFlag.textContent = dest.flag;
+      elEyebrow.textContent = 'Chapter ' + romanize(idx);
+
+      // reset
+      gsap.set(elEyebrowRow, { opacity: 0, y: 12 });
+      gsap.set(elDestinationH1, { opacity: 0, y: 22 });
+      gsap.set(elUnderline, { width: 0 });
+      gsap.set(elFlagRow, { opacity: 0, y: 10 });
+
+      const tl = gsap.timeline();
+      tl.to(elEyebrowRow, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' })
+        .to(elDestinationH1, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out' }, '-=0.3')
+        .to(elUnderline, { width: 84, duration: 0.7, ease: 'power2.out' }, '-=0.4')
+        .to(elFlagRow, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, '-=0.4');
+      return tl;
+    }
+
+    function hideDestinationText() {
+      return gsap.to([elEyebrowRow, elDestinationH1, elFlagRow], { opacity: 0, y: -10, duration: 0.5, ease: 'power2.in', stagger: 0.05 });
+    }
+
+    /* --- Camera orbit ------------------------------------------- */
+    /* We'll rotate the GLOBE_GROUP to bring the target point to face the camera,
+       keeping camera on +Z. That's easier than orbiting the camera on a sphere
+       and still counts as the camera "arcing around" visually. */
+
+    function rotationForLatLon(lat, lon) {
+      // Globe rotated so that point(lat,lon) faces +Z.
+      // lon rotates around Y, lat rotates around X.
+      const y = -((lon) * Math.PI / 180); // negate because of texture mapping convention
+      const x = (lat) * Math.PI / 180;
+      return { x, y };
+    }
+
+    const globeRot = { x: 0, y: 0 };
+    globeGroup.rotation.x = 0;
+    globeGroup.rotation.y = 0;
+
+    /* --- Tour loop ---------------------------------------------- */
+    let tourIdx = 0;
+    let running = false;
+
+    async function flyTo(fromIdx, toIdx) {
+      const from = DESTINATIONS[fromIdx];
+      const to = DESTINATIONS[toIdx];
+
+      // 1) hide destination text
+      hideDestinationText();
+
+      // 2) build great-circle arc on the globe surface (sit just above surface)
+      const fromUnit = latLonToVec3(from.lat, from.lon, 1);
+      const toUnit = latLonToVec3(to.lat, to.lon, 1);
+      const STEPS = 96;
+      const surfaceR = GLOBE_RADIUS + 0.02; // line sits just above the surface
+      const planeR = GLOBE_RADIUS + 0.05; // plane slightly higher so it's visible
+      const a = fromUnit.clone().normalize();
+      const b = toUnit.clone().normalize();
+      const dot = Math.min(1, Math.max(-1, a.dot(b)));
+      const omega = Math.acos(dot);
+      const sinO = Math.sin(omega);
+      const arcLinePoints = [];
+      const arcPlanePoints = [];
+      for (let i = 0; i <= STEPS; i++) {
+        const t = i / STEPS;
+        let v;
+        if (sinO < 1e-4) {
+          v = a.clone().lerp(b, t).normalize();
+        } else {
+          const w1 = Math.sin((1 - t) * omega) / sinO;
+          const w2 = Math.sin(t * omega) / sinO;
+          v = a.clone().multiplyScalar(w1).add(b.clone().multiplyScalar(w2)).normalize();
+        }
+        arcLinePoints.push(v.clone().multiplyScalar(surfaceR));
+        arcPlanePoints.push(v.clone().multiplyScalar(planeR));
+      }
+
+      // Solid white arc line — uses drawRange for progressive reveal.
+      // Pre-allocate full geometry so drawRange works properly.
+      const lineGeom = new THREE.BufferGeometry().setFromPoints(arcLinePoints);
+      lineGeom.setDrawRange(0, 0);
+      const lineMat = new THREE.LineBasicMaterial({
+        color: 0xffffff, transparent: true, opacity: 0.8, linewidth: 1
+      });
+      const arcLine = new THREE.Line(lineGeom, lineMat);
+      arcLine.renderOrder = 2;
+      globeGroup.add(arcLine);
+      currentArc = { arcLine };
+
+      // Airplane sprite on the globe surface (billboards toward camera)
+      const plane = makePlaneSprite();
+      plane.position.copy(arcPlanePoints[0]);
+      plane.material.opacity = 0;
+      plane.material.rotation = 0;
+      globeGroup.add(plane);
+
+      // 3) target rotation
+      const targetRot = rotationForLatLon(to.lat, to.lon);
+
+      const camState = { z: camera.position.z };
+      const rotState = { x: globeGroup.rotation.x, y: globeGroup.rotation.y };
+
+      // shortest rotation path
+      let dy = targetRot.y - rotState.y;
+      while (dy > Math.PI) dy -= Math.PI * 2;
+      while (dy < -Math.PI) dy += Math.PI * 2;
+      const endRotY = rotState.y + dy;
+      const endRotX = targetRot.x;
+
+      return new Promise(resolve => {
+        const tl = gsap.timeline({
+          onComplete: () => {
+            // Arrived — show destination text immediately
+            updateProgress(toIdx);
+            showDestinationText(DESTINATIONS[toIdx], toIdx);
+
+            // Fade out plane right away
+            gsap.to(plane.material, { opacity: 0, duration: 0.35, ease: 'power2.in' });
+
+            // Hold at destination for 4s, then clean up arc and resolve
+            setTimeout(() => {
+              gsap.to(arcLine.material, {
+                opacity: 0, duration: 0.6, ease: 'power2.in',
+                onComplete: () => {
+                  globeGroup.remove(arcLine);
+                  globeGroup.remove(plane);
+                  arcLine.geometry.dispose(); arcLine.material.dispose();
+                  plane.material.map.dispose(); plane.material.dispose();
+                  currentArc = null;
+                  resolve();
+                }
+              });
+            }, 4000);
+          }
+        });
+
+        // Camera arc: pull back, zoom in, slight overshoot (2.5s total)
+        tl.to(camState, {
+          z: CAM_FAR,
+          duration: 1.1, ease: 'power2.inOut',
+          onUpdate: () => { camera.position.z = camState.z; }
+        }, 0);
+        tl.to(camState, {
+          z: CAM_NEAR - 0.12,
+          duration: 1.0, ease: 'power2.inOut',
+          onUpdate: () => { camera.position.z = camState.z; }
+        }, 1.1);
+        tl.to(camState, {
+          z: CAM_NEAR,
+          duration: 0.4, ease: 'power2.out',
+          onUpdate: () => { camera.position.z = camState.z; }
+        }, 2.1);
+
+        // Globe rotation
+        tl.to(rotState, {
+          x: endRotX, y: endRotY,
+          duration: 2.4, ease: 'power3.inOut',
+          onUpdate: () => {
+            globeGroup.rotation.x = rotState.x;
+            globeGroup.rotation.y = rotState.y;
+          }
+        }, 0.05);
+
+        // Plane fade in at departure
+        tl.to(plane.material, { opacity: 1, duration: 0.35, ease: 'power2.out' }, 0.1);
+
+        // Progressive flight: plane walks along arc, line grows behind it
+        const flightState = { p: 0 };
+        const up = new THREE.Vector3(0, 1, 0);
+        tl.to(flightState, {
+          p: 1,
+          duration: 2.5, ease: 'power2.inOut',
+          onUpdate: () => {
+            const p = flightState.p;
+            // line drawRange: grow from 0 to current index
+            const n = Math.max(2, Math.floor((arcLinePoints.length) * p));
+            lineGeom.setDrawRange(0, n);
+
+            // plane position (lerp between sampled points)
+            const idxF = p * (arcPlanePoints.length - 1);
+            const i0 = Math.floor(idxF);
+            const i1 = Math.min(arcPlanePoints.length - 1, i0 + 1);
+            const f = idxF - i0;
+            const pos = arcPlanePoints[i0].clone().lerp(arcPlanePoints[i1], f);
+            plane.position.copy(pos);
+
+            // Orient plane to face direction of travel along the surface.
+            // Sprite billboards toward the camera; we rotate its 2D texture
+            // so the nose (which points up in canvas) aligns with the
+            // screen-space projection of the tangent vector.
+            if (i1 > i0) {
+              // tangent in world space (globe local, since globeGroup rotates plane too)
+              const prev = arcPlanePoints[Math.max(0, i0)];
+              const next = arcPlanePoints[Math.min(arcPlanePoints.length - 1, i1)];
+              const tangentLocal = next.clone().sub(prev);
+
+              // convert to world and then to screen direction
+              const worldPos = plane.position.clone().applyMatrix4(globeGroup.matrixWorld);
+              const worldAhead = plane.position.clone().add(tangentLocal).applyMatrix4(globeGroup.matrixWorld);
+              const sPos = worldPos.clone().project(camera);
+              const sAhead = worldAhead.clone().project(camera);
+              const sdx = sAhead.x - sPos.x;
+              const sdy = sAhead.y - sPos.y;
+              // SpriteMaterial.rotation rotates the texture. "Up" in canvas is +Y.
+              // Screen +Y in NDC is up. We want nose (+Y) to point toward (sdx,sdy).
+              // Angle from +Y axis: atan2(sdx, sdy) — note: flipped from atan2(y,x)
+              plane.material.rotation = -Math.atan2(sdx, sdy);
+            }
+          }
+        }, 0.1);
+      });
+    }
+
+    async function showDestinationScene(idx) {
+      const dest = DESTINATIONS[idx];
+      updateProgress(idx);
+      showDestinationText(dest, idx);
+      // Hold the first destination for 4s before the tour begins flying
+      await new Promise(r => setTimeout(r, 4000));
+    }
+
+    async function runTour() {
+      running = true;
+      // Initial scene: show Malaysia
+      tourIdx = 0;
+      // set globe rotation to Malaysia
+      const initRot = rotationForLatLon(DESTINATIONS[0].lat, DESTINATIONS[0].lon);
+      globeGroup.rotation.x = initRot.x;
+      globeGroup.rotation.y = initRot.y;
+      camera.position.z = CAM_NEAR;
+
+      while (running) {
+        if (tourIdx === 0) {
+          // First stop: show text and hold before starting flights
+          await showDestinationScene(tourIdx);
+        }
+        const next = (tourIdx + 1) % DESTINATIONS.length;
+        // Hide current text, fly to next (text shown on arrival inside flyTo)
+        await flyTo(tourIdx, next);
+        tourIdx = next;
+      }
+    }
+
+    /* --- Resize + render loop ----------------------------------- */
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+      const t = clock.elapsedTime;
+
+      // Cloud slight extra rotation
+      clouds.rotation.y += dt * 0.012;
+
+      // Stars twinkle
+      stars.material.uniforms.uTime.value = t;
+
+      // Subtle globe idle breathing (very gentle)
+      // (main motion comes from flyTo timelines)
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    /* --- Kickoff once textures or timeout ----------------------- */
+    (function kickoff() {
+      let started = false;
+      const start = () => { if (started) return; started = true; runTour(); };
+      // Start as soon as texture ready, or fallback after 2.5s
+      const check = setInterval(() => {
+        if (globeReady) { clearInterval(check); hideLoader(); start(); }
+      }, 100);
+      setTimeout(() => { clearInterval(check); hideLoader(); start(); }, 3500);
+    })();
+  </script>
+</body>
+
+</html>

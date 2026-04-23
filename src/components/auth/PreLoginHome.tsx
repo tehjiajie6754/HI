@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowRight, Shield, UserPlus } from 'lucide-react'
-import Iridescence from '@/components/backgrounds/Iridescence'
 import { Button } from '@/components/ui/Button'
 
 const PreLoginHome = () => {
@@ -30,28 +29,30 @@ const PreLoginHome = () => {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      <Iridescence
-        color={[1, 1, 1]}
-        mouseReact={false}
-        amplitude={0.1}
-        speed={1.0}
-        className="absolute inset-0"
+      {/* Globe World Tour background via iframe */}
+      <iframe
+        src="/globe-bg.html"
+        className="absolute inset-0 w-full h-full border-0"
+        style={{ zIndex: 0, pointerEvents: 'none' }}
+        title="Globe Background"
+        aria-hidden="true"
+        tabIndex={-1}
       />
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 min-h-screen flex items-end justify-center px-4 sm:px-6 lg:px-8 pb-[24vh]">
         <div className="max-w-2xl mx-auto text-center">
           {/* Clean Brand Title */}
           <motion.div
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="mb-16"
+            className="mb-8"
           >
-            <h1 className="text-6xl md:text-8xl font-bold text-black mb-6">
-              <span className="bg-gradient-to-r from-black via-purple-800 to-blue-800 bg-clip-text text-transparent">
+            <h1 className="text-6xl md:text-8xl font-bold text-white mb-6">
+              <span className="bg-gradient-to-r from-white via-purple-300 to-cyan-300 bg-clip-text text-transparent">
                 Zen Travel
               </span>
             </h1>
-            <p className="text-xl md:text-2xl text-black/80 font-light max-w-xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-white/80 font-light max-w-xl mx-auto leading-relaxed">
               Your Complete Travel Planning Platform
             </p>
           </motion.div>
@@ -113,7 +114,7 @@ const PreLoginHome = () => {
               </Button>
             </div>
 
-            <p className="text-black/60 text-sm">
+            <p className="text-white/60 text-sm">
               Secure • Fast • Curated Journeys
             </p>
           </motion.div>

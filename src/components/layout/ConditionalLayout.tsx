@@ -12,6 +12,7 @@ const ConditionalLayout = ({ children }: ConditionalLayoutProps) => {
   const pathname = usePathname()
   
   const isPreLoginPage = pathname === '/' || pathname === '/login' || pathname === '/register'
+  const isFooterHidden = pathname.startsWith('/onboarding')
   
   if (isPreLoginPage) {
     return <>{children}</>
@@ -23,7 +24,7 @@ const ConditionalLayout = ({ children }: ConditionalLayoutProps) => {
       <main className="flex-1">
         {children}
       </main>
-      <Footer />
+      {!isFooterHidden && <Footer />}
     </div>
   )
 }
