@@ -3,6 +3,10 @@
 import { useRef, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@/contexts/UserContext'
+import {
+  Camera, CameraOff, ScanFace, Eye, MoveHorizontal, MoveVertical,
+  CheckCircle2, Sparkles, ShieldCheck,
+} from 'lucide-react'
 
 
 // Global liveness state
@@ -38,7 +42,7 @@ export default function LoginPage() {
   const [faceRecognitionStatus, setFaceRecognitionStatus] = useState('')
   const [faceRecognitionError, setFaceRecognitionError] = useState('')
   const [testInstruction, setTestInstruction] = useState('Click "Start Verification" to begin the liveness test')
-  const [testStatusText, setTestStatusText] = useState('🔄 Ready for verification')
+  const [testStatusText, setTestStatusText] = useState('Ready for verification')
   const [isTestActive, setIsTestActive] = useState(false)
   const [testPassed, setTestPassed] = useState(false)
 
@@ -201,17 +205,17 @@ export default function LoginPage() {
 
   function updateUI() {
     if (testStatus === 'passed') {
-      setTestPassed(true); setTestInstruction('<b>🎉 Verification Successful!</b>'); setTestStatusText('✅ LOGIN APPROVED'); return
+      setTestPassed(true); setTestInstruction('<b>Verification Successful</b>'); setTestStatusText('Login Approved'); return
     }
     if (currentTestType === 'blink') {
-      setTestInstruction(livenessTestActive ? `<b>Please blink your eyes TWICE</b>` : 'Click "Start Verification" to begin')
-      setTestStatusText(testStatus === 'in_progress' ? `👁️ Progress: ${blinkCount}/2 blinks` : '👁️ Waiting for blinks...')
+      setTestInstruction(livenessTestActive ? '<b>Please blink your eyes twice</b>' : 'Click "Start Verification" to begin')
+      setTestStatusText(testStatus === 'in_progress' ? `Progress: ${blinkCount}/2 blinks` : 'Waiting for blinks')
     } else if (currentTestType === 'head_turn') {
       setTestInstruction(livenessTestActive ? '<b>Turn your head LEFT, then RIGHT</b>' : 'Click "Start Verification" to begin')
-      setTestStatusText(`🔄 Left: ${hasMovedLeft ? '✅' : '⏳'} Right: ${hasMovedRight ? '✅' : '⏳'}`)
+      setTestStatusText(`Left: ${hasMovedLeft ? 'Done' : 'Pending'} · Right: ${hasMovedRight ? 'Done' : 'Pending'}`)
     } else {
-      setTestInstruction(livenessTestActive ? `<b>Please NOD your head up and down TWICE</b>` : 'Click "Start Verification" to begin')
-      setTestStatusText(testStatus === 'in_progress' ? `🔄 Progress: ${nodCount}/2 nods` : '🔄 Waiting for nods...')
+      setTestInstruction(livenessTestActive ? '<b>Please nod your head up and down twice</b>' : 'Click "Start Verification" to begin')
+      setTestStatusText(testStatus === 'in_progress' ? `Progress: ${nodCount}/2 nods` : 'Waiting for nods')
     }
   }
 
@@ -278,46 +282,168 @@ export default function LoginPage() {
           <p className="text-white/70">Complete face liveness verification to access your account</p>
         </div>
 
-        <section ref={demosSectionRef} className="invisible transition-opacity duration-500">
-          {/* Camera panel */}
-          <div className="bg-white/90 backdrop-blur-lg rounded-xl shadow-xl border border-white/30 overflow-hidden mb-6">
-            <div className="p-5 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Face Verification</h2>
-              <p className="text-sm text-gray-500 mt-1">Position your face clearly in front of the camera</p>
-            </div>
-            <div className="p-6">
-              <div className="flex justify-center mb-5">
-                <button ref={enableWebcamButtonRef} onClick={enableCam}
-                  className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${isWebcamRunning ? 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
-                  {isWebcamRunning ? 'DISABLE CAMERA' : 'ENABLE CAMERA'}
-                </button>
+        <section ref={demosSectionRef} className="invisible transition-opacity duration-500 space-y-6">
+          {/* ── Camera panel ──────────────────────────────────────────────────── */}
+          <div className="relative group">
+            {/* Aurora glow behind card */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-[#C9A84C]/30 via-cyan-400/20 to-[#C9A84C]/30 rounded-3xl blur-xl opacity-70 group-hover:opacity-90 transition-opacity" />
+
+            {/* Card */}
+            <div className="relative bg-gradient-to-br from-[#0E1423]/85 to-[#1A1A2E]/85 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.5)] overflow-hidden">
+              {/* Top gold + cyan stripe */}
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#C9A84C] to-transparent" />
+              <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-cyan-300/60 to-transparent blur-sm" />
+
+              {/* Header */}
+              <div className="px-7 py-5 border-b border-white/10 flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#C9A84C]/30 to-[#C9A84C]/5 border border-[#C9A84C]/30 flex items-center justify-center backdrop-blur-sm shadow-[0_0_20px_rgba(201,168,76,0.2)]">
+                  <ScanFace className="w-5 h-5 text-[#C9A84C]" />
+                </div>
+                <div>
+                  <h2 className="font-serif font-bold text-xl text-white leading-tight">Face Verification</h2>
+                  <p className="text-sm text-white/50 tracking-wide">Align your face inside the targeting reticle</p>
+                </div>
+                <div className="ml-auto flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-cyan-300/70 font-bold">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isWebcamRunning ? 'bg-emerald-400 animate-pulse' : 'bg-white/20'}`} />
+                  {isWebcamRunning ? 'Online' : 'Offline'}
+                </div>
               </div>
-              <div className="flex justify-center">
-                <div className="relative bg-gray-900 rounded-xl overflow-hidden" style={{ maxWidth: 480, width: '100%' }}>
-                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-auto object-cover" />
-                  <canvas ref={canvasRef} className="mirror absolute left-0 top-0 w-full h-auto" />
-                  {isWebcamRunning && (
-                    <div className="absolute top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /> LIVE
+
+              <div className="p-6 md:p-7">
+                {/* Enable / disable camera */}
+                <div className="flex justify-center mb-6">
+                  <button
+                    ref={enableWebcamButtonRef}
+                    onClick={enableCam}
+                    className={`group/btn relative inline-flex items-center gap-2 px-7 py-3 rounded-full font-semibold text-sm tracking-wider uppercase transition-all duration-300 ${
+                      isWebcamRunning
+                        ? 'bg-white/5 border border-red-300/40 text-red-300 hover:bg-red-500/10 hover:border-red-300/70'
+                        : 'bg-gradient-to-r from-[#C9A84C] to-[#A68A3D] text-white shadow-[0_0_25px_rgba(201,168,76,0.5)] hover:shadow-[0_0_35px_rgba(201,168,76,0.7)] hover:-translate-y-0.5'
+                    }`}
+                  >
+                    {isWebcamRunning
+                      ? <><CameraOff className="w-4 h-4" /> Disable Camera</>
+                      : <><Camera className="w-4 h-4" /> Enable Camera</>}
+                  </button>
+                </div>
+
+                {/* Camera viewport with corner targeting brackets */}
+                <div className="flex justify-center">
+                  <div className="relative" style={{ maxWidth: 480, width: '100%' }}>
+                    {/* Sci-fi targeting reticle corners */}
+                    <span className="pointer-events-none absolute -top-1 -left-1 w-7 h-7 border-t-2 border-l-2 border-[#C9A84C] rounded-tl-2xl z-20" />
+                    <span className="pointer-events-none absolute -top-1 -right-1 w-7 h-7 border-t-2 border-r-2 border-[#C9A84C] rounded-tr-2xl z-20" />
+                    <span className="pointer-events-none absolute -bottom-1 -left-1 w-7 h-7 border-b-2 border-l-2 border-[#C9A84C] rounded-bl-2xl z-20" />
+                    <span className="pointer-events-none absolute -bottom-1 -right-1 w-7 h-7 border-b-2 border-r-2 border-[#C9A84C] rounded-br-2xl z-20" />
+
+                    {/* Soft outer glow when live */}
+                    {isWebcamRunning && (
+                      <div className="absolute -inset-2 rounded-2xl bg-[#C9A84C]/15 blur-xl animate-pulse pointer-events-none" />
+                    )}
+
+                    <div className="relative bg-[#05080F] rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-inner">
+                      <video ref={videoRef} autoPlay playsInline muted className="w-full h-auto object-cover" />
+                      <canvas ref={canvasRef} className="mirror absolute left-0 top-0 w-full h-auto" />
+
+                      {/* LIVE badge */}
+                      {isWebcamRunning && (
+                        <div className="absolute top-3 left-3 z-10 bg-gradient-to-r from-[#C9A84C] to-[#A68A3D] text-white px-3 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] flex items-center gap-1.5 shadow-lg shadow-[#C9A84C]/40">
+                          <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                          LIVE
+                        </div>
+                      )}
+
+                      {/* Empty-state hint */}
+                      {!isWebcamRunning && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white/30 gap-2 z-10">
+                          <ScanFace className="w-12 h-12" strokeWidth={1.2} />
+                          <p className="text-xs uppercase tracking-[0.25em] font-semibold">Camera Offline</p>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Liveness test panel */}
-          <div className="bg-white/90 backdrop-blur-lg rounded-xl shadow-xl border border-white/30 p-6">
-            <div className="text-center">
-              <div className={`text-2xl font-bold mb-3 ${testPassed ? 'text-green-600' : 'text-gray-900'}`}>
-                {testPassed ? '✅ Verification Successful!' : testStatusText}
+          {/* ── Liveness test panel ───────────────────────────────────────────── */}
+          <div className="relative group">
+            <div className={`absolute -inset-1 rounded-3xl blur-xl opacity-70 group-hover:opacity-90 transition-opacity ${
+              testPassed
+                ? 'bg-gradient-to-r from-emerald-400/30 via-emerald-300/20 to-emerald-400/30'
+                : 'bg-gradient-to-r from-[#C9A84C]/25 via-cyan-400/15 to-[#C9A84C]/25'
+            }`} />
+
+            <div className="relative bg-gradient-to-br from-[#0E1423]/85 to-[#1A1A2E]/85 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.5)] p-8 md:p-10 text-center overflow-hidden">
+              {/* Top accent stripes */}
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#C9A84C] to-transparent" />
+              <div className="absolute top-0 left-1/3 right-1/3 h-px bg-gradient-to-r from-transparent via-cyan-300/60 to-transparent blur-sm" />
+
+              {/* Big circular indicator */}
+              <div className="relative w-24 h-24 mx-auto mb-5">
+                {/* Outer pulsing halo */}
+                <div className={`absolute inset-0 rounded-full ${isTestActive && !testPassed ? 'animate-ping' : ''} ${
+                  testPassed ? 'bg-emerald-400/30' : 'bg-[#C9A84C]/20'
+                }`} />
+                {/* Mid ring */}
+                <div className={`absolute inset-1 rounded-full border ${
+                  testPassed ? 'border-emerald-300/40' : 'border-[#C9A84C]/30'
+                }`} />
+                {/* Inner glass disc with icon */}
+                <div className={`absolute inset-3 rounded-full border-2 backdrop-blur-sm flex items-center justify-center ${
+                  testPassed
+                    ? 'border-emerald-300/60 bg-gradient-to-br from-emerald-400/25 to-emerald-500/5 shadow-[0_0_30px_rgba(16,185,129,0.4)]'
+                    : 'border-[#C9A84C]/50 bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 shadow-[0_0_30px_rgba(201,168,76,0.35)]'
+                }`}>
+                  {testPassed
+                    ? <CheckCircle2 className="w-9 h-9 text-emerald-300" />
+                    : currentTestType === 'blink'
+                      ? <Eye className="w-9 h-9 text-[#C9A84C]" />
+                      : currentTestType === 'head_turn'
+                        ? <MoveHorizontal className="w-9 h-9 text-[#C9A84C]" />
+                        : <MoveVertical className="w-9 h-9 text-[#C9A84C]" />}
+                </div>
               </div>
-              <p className="text-gray-600 mb-6" dangerouslySetInnerHTML={{ __html: testInstruction }} />
-              <button onClick={startRandomTest} disabled={!isWebcamRunning}
-                className={`px-8 py-4 rounded-lg text-base font-semibold transition-all duration-200 ${!isWebcamRunning ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : isTestActive ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gradient-to-r from-green-500 to-blue-600 text-white shadow-lg hover:shadow-xl'}`}>
+
+              {/* Status pill */}
+              <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase mb-4 border backdrop-blur-sm ${
+                testPassed
+                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-300/30'
+                  : isTestActive
+                    ? 'bg-[#C9A84C]/15 text-[#C9A84C] border-[#C9A84C]/40'
+                    : 'bg-white/5 text-white/60 border-white/10'
+              }`}>
+                {testPassed ? <ShieldCheck className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {testStatusText}
+              </div>
+
+              {/* Headline */}
+              <div className={`text-3xl md:text-4xl font-serif font-bold mb-3 ${testPassed ? 'text-emerald-200' : 'text-white'}`}>
+                {testPassed ? 'Verification Successful' : 'Liveness Test'}
+              </div>
+
+              {/* Instruction */}
+              <p className="text-white/70 text-base md:text-lg mb-8 max-w-md mx-auto leading-relaxed" dangerouslySetInnerHTML={{ __html: testInstruction }} />
+
+              {/* CTA */}
+              <button
+                onClick={startRandomTest}
+                disabled={!isWebcamRunning}
+                className={`relative inline-flex items-center gap-2 px-12 py-4 rounded-full font-bold text-base tracking-wider uppercase transition-all duration-300 ${
+                  !isWebcamRunning
+                    ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/10'
+                    : isTestActive
+                      ? 'bg-white/5 border border-red-300/40 text-red-300 hover:bg-red-500/10'
+                      : 'bg-gradient-to-r from-[#C9A84C] via-[#D4B25A] to-[#A68A3D] text-white shadow-[0_0_30px_rgba(201,168,76,0.5)] hover:shadow-[0_0_45px_rgba(201,168,76,0.75)] hover:-translate-y-0.5'
+                }`}
+              >
                 {!isWebcamRunning ? 'Enable Camera First' : isTestActive ? 'Stop Test' : 'Start Verification'}
               </button>
-              {!isWebcamRunning && <p className="text-xs text-gray-400 mt-2">Please enable your camera before starting verification</p>}
+
+              {!isWebcamRunning && (
+                <p className="text-xs text-white/40 mt-4 tracking-wide">Enable your camera before starting verification</p>
+              )}
             </div>
           </div>
         </section>

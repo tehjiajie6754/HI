@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Zen Travel Earth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* Changed background to a light theme color (#f8f9fa) */
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #f8f9fa; font-family: 'Inter', sans-serif; }
+    canvas { display: block; outline: none; }
+    #three-root { position: fixed; inset: 0; z-index: 0; }
+    
+    #markers-container {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    .marker-wrapper {
+      position: absolute;
+      top: 0; left: 0;
+      transform: translate(-50%, -100%);
+      pointer-events: auto;
+      transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .marker-wrapper.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .marker {
+      width: 38px;
+      height: 38px;
+      background: #f0f0f0;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      box-shadow: 0px 4px 8px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      border: 1.5px solid white;
+    }
+    
+    .marker .flag {
+      transform: rotate(45deg);
+      width: 100%;
+      height: 100%;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .marker .flag img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      transform: scale(1.15); /* Slightly scale up to fill the teardrop shape nicely */
+    }
+    
+    .marker-wrapper:hover {
+      transform: translate(-50%, calc(-100% - 10px));
+      z-index: 20;
+    }
+    
+    .tooltip {
+      position: absolute;
+      bottom: calc(100% + 12px);
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: #1c2331;
+      color: white;
+      padding: 14px 20px;
+      border-radius: 12px;
+      width: max-content;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0.3s;
+      box-shadow: 0px 8px 24px rgba(0,0,0,0.5);
+      text-align: left;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .marker-wrapper:hover .tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+    
+    .tooltip h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0 0 4px 0;
+      letter-spacing: 0.5px;
+    }
+    
+    .tooltip p {
+      font-size: 13px;
+      color: #a0aabf;
+      margin: 0 0 14px 0;
+    }
+    
+    .tooltip .btn {
+      display: inline-block;
+      background: #c9a84c;
+      color: #1a1a2e;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    
+    .tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 8px;
+      border-style: solid;
+      border-color: #1c2331 transparent transparent transparent;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="three-root"></div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // Scene setup
+    const container = document.getElementById('three-root');
+    const scene = new THREE.Scene();
+    
+    // Add starfield background (updated colors to stand out on light background)
+    const starGeom = new THREE.BufferGeometry();
+    const starMats = new THREE.PointsMaterial({ color: 0x8888aa, size: 0.02, transparent: true, opacity: 0.6 });
+    const starPts = [];
+    for(let i = 0; i < 2000; i++) {
+      const v = new THREE.Vector3(
+        (Math.random() - 0.5) * 20,
+        (Math.random() - 0.5) * 20,
+        (Math.random() - 0.5) * 20
+      );
+      if(v.length() > 2) {
+        starPts.push(v.x, v.y, v.z);
+      }
+    }
+    starGeom.setAttribute('position', new THREE.Float32BufferAttribute(starPts, 3));
+    const stars = new THREE.Points(starGeom, starMats);
+    scene.add(stars);
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 2.8;
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    container.appendChild(renderer.domElement);
+
+    // Controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enablePan = false;
+    controls.enableZoom = true;
+    controls.minDistance = 1.5;
+    controls.maxDistance = 5.0;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.2;
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2); // Increased from 0.8 to brighten overall map
+    scene.add(ambientLight);
+    
+    const dirLight = new THREE.DirectionalLight(0xffffff, 3.5); // Increased from 3.0 to brighten the sunlit side
+    dirLight.position.set(5, 3, 5);
+    scene.add(dirLight);
+    
+    const backLight = new THREE.DirectionalLight(0xffffff, 1.8); // Increased from 1.2 to brighten the dark side
+    backLight.position.set(-5, -3, -5);
+    scene.add(backLight);
+
+    // Earth
+    const textureLoader = new THREE.TextureLoader();
+    
+    const globeGroup = new THREE.Group();
+    scene.add(globeGroup);
+
+    // Base earth texture
+    let earthLoaded = false;
+    textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg', (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      
+      const earthGeom = new THREE.SphereGeometry(1, 64, 64);
+      // Use MeshPhongMaterial with ambient light to wash out saturation slightly
+      // but without specular highlights so it remains flat-looking like the reference
+      const earthMat = new THREE.MeshPhongMaterial({
+        map: tex,
+        color: 0xffffff, // Base color pure white
+        emissive: 0x000000, // Removed emissive blue tint to keep it clear
+        shininess: 0,
+        specular: new THREE.Color(0x000000)
+      });
+      const earth = new THREE.Mesh(earthGeom, earthMat);
+      globeGroup.add(earth);
+      
+      earthLoaded = true;
+    });
+
+    // We no longer add the custom shader atmosphere glow to keep the earth looking clear and unfiltered.
+
+    // ==========================================
+    // Markers & Tooltips
+    // ==========================================
+    function latLonToVec3(lat, lon, r) {
+      const phi = (90 - lat) * (Math.PI / 180);
+      const theta = (lon + 180) * (Math.PI / 180); // Adjusted longitude offset to match texture accurately (moved left)
+      const x = -(r * Math.sin(phi) * Math.cos(theta));
+      const y = r * Math.cos(phi);
+      const z = r * Math.sin(phi) * Math.sin(theta);
+      return new THREE.Vector3(x, y, z);
+    }
+
+    const markersData = [
+      { id: 'fr', code: 'fr', lat: 46.2276, lon: 2.2137, 
+        names: { EN: 'France', ZH: '法国', BM: 'Perancis' } },
+      { id: 'it', code: 'it', lat: 41.8719, lon: 12.5674, 
+        names: { EN: 'Italy', ZH: '意大利', BM: 'Itali' } },
+      { id: 'uk', code: 'gb', lat: 55.3781, lon: -3.4360, 
+        names: { EN: 'United Kingdom', ZH: '英国', BM: 'United Kingdom' } },
+      { id: 'us', code: 'us', lat: 37.0902, lon: -95.7129, 
+        names: { EN: 'United States', ZH: '美国', BM: 'Amerika Syarikat' } },
+      { id: 'jp', code: 'jp', lat: 36.2048, lon: 138.2529, 
+        names: { EN: 'Japan', ZH: '日本', BM: 'Jepun' } },
+      { id: 'kr', code: 'kr', lat: 35.9078, lon: 127.7669, 
+        names: { EN: 'South Korea', ZH: '韩国', BM: 'Korea Selatan' } },
+      { id: 'ca', code: 'ca', lat: 56.1304, lon: -106.3468, 
+        names: { EN: 'Canada', ZH: '加拿大', BM: 'Kanada' } },
+      { id: 'br', code: 'br', lat: -14.2350, lon: -51.9253, 
+        names: { EN: 'Brazil', ZH: '巴西', BM: 'Brazil' } },
+      { id: 'in', code: 'in', lat: 20.5937, lon: 78.9629, 
+        names: { EN: 'India', ZH: '印度', BM: 'India' } },
+      { id: 'cn', code: 'cn', lat: 35.8617, lon: 104.1954, 
+        names: { EN: 'China', ZH: '中国', BM: 'China' } },
+      { id: 'my', code: 'my', lat: 4.2105, lon: 101.9758, 
+        names: { EN: 'Malaysia', ZH: '马来西亚', BM: 'Malaysia' } },
+      { id: 'th', code: 'th', lat: 15.8700, lon: 100.9925, 
+        names: { EN: 'Thailand', ZH: '泰国', BM: 'Thailand' } },
+      { id: 'sg', code: 'sg', lat: 1.3521, lon: 103.8198, 
+        names: { EN: 'Singapore', ZH: '新加坡', BM: 'Singapura' } },
+      { id: 'id', code: 'id', lat: -0.7893, lon: 113.9213, 
+        names: { EN: 'Indonesia', ZH: '印尼', BM: 'Indonesia' } },
+      { id: 'vn', code: 'vn', lat: 14.0583, lon: 108.2772, 
+        names: { EN: 'Vietnam', ZH: '越南', BM: 'Vietnam' } },
+      { id: 'ph', code: 'ph', lat: 12.8797, lon: 121.7740, 
+        names: { EN: 'Philippines', ZH: '菲律宾', BM: 'Filipina' } },
+    ];
+
+    const markerElements = [];
+    const markersContainer = document.createElement('div');
+    markersContainer.id = 'markers-container';
+    document.body.appendChild(markersContainer);
+
+    let currentLang = 'EN';
+
+    // We will expose a function to the parent window to change the language
+    window.setEarthLanguage = function(lang) {
+      if (['EN', 'ZH', 'BM'].includes(lang)) {
+        currentLang = lang;
+        updateTooltipsLanguage();
+      }
+    };
+
+    function updateTooltipsLanguage() {
+      markerElements.forEach(m => {
+        const d = m.data;
+        const mainName = d.names[currentLang];
+        // The sub name is the other two languages
+        const otherLangs = ['EN', 'ZH', 'BM'].filter(l => l !== currentLang);
+        const subName = `${d.names[otherLangs[0]]} · ${d.names[otherLangs[1]]}`;
+        
+        const h3 = m.wrapper.querySelector('h3');
+        const p = m.wrapper.querySelector('p');
+        
+        if (h3) h3.textContent = mainName;
+        if (p) p.textContent = subName;
+      });
+    }
+
+    markersData.forEach(data => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'marker-wrapper hidden';
+      
+      const marker = document.createElement('div');
+      marker.className = 'marker';
+      // Use flagcdn.com to load high-quality flag images based on country code
+      marker.innerHTML = `<div class="flag"><img src="https://flagcdn.com/w40/${data.code}.png" alt="${data.id} flag" /></div>`;
+      
+      const tooltip = document.createElement('div');
+      tooltip.className = 'tooltip';
+      
+      const mainName = data.names[currentLang];
+      const otherLangs = ['EN', 'ZH', 'BM'].filter(l => l !== currentLang);
+      const subName = `${data.names[otherLangs[0]]} · ${data.names[otherLangs[1]]}`;
+
+      tooltip.innerHTML = `
+        <h3>${mainName}</h3>
+        <p>${subName}</p>
+        <div class="btn">Available</div>
+      `;
+      
+      wrapper.appendChild(tooltip);
+      wrapper.appendChild(marker);
+      markersContainer.appendChild(wrapper);
+      
+      const position3D = latLonToVec3(data.lat, data.lon, 1.0);
+      
+      marker.addEventListener('click', () => {
+        if (data.id === 'my') {
+          controls.autoRotate = false;
+          // Calculate world position
+          const worldPos = position3D.clone().applyMatrix4(globeGroup.matrixWorld).normalize();
+          // Set target camera position closer (1.5x radius instead of 2.0x)
+          targetCameraPos = worldPos.multiplyScalar(1.5); 
+        }
+      });
+      
+      markerElements.push({
+        wrapper,
+        position3D,
+        data
+      });
+    });
+
+    let targetCameraPos = null;
+    controls.addEventListener('start', () => {
+      targetCameraPos = null; // stop zoom if user interacts
+    });
+
+    // Listen for reset and focus commands from parent
+    window.addEventListener('message', (event) => {
+      if (event.data) {
+        if (event.data.type === 'RESET_EARTH') {
+          controls.autoRotate = true;
+          targetCameraPos = null;
+        } else if (event.data.type === 'FOCUS_COUNTRY') {
+          const countryId = event.data.countryId;
+          const markerObj = markerElements.find(m => m.data.id === countryId);
+          if (markerObj) {
+            controls.autoRotate = false;
+            const worldPos = markerObj.position3D.clone().applyMatrix4(globeGroup.matrixWorld).normalize();
+            targetCameraPos = worldPos.multiplyScalar(1.5);
+          }
+        }
+      }
+    });
+
+    const tempV = new THREE.Vector3();
+    const cameraDir = new THREE.Vector3();
+    const globeCenter = new THREE.Vector3();
+
+    function updateMarkers() {
+      camera.getWorldDirection(cameraDir);
+      globeGroup.getWorldPosition(globeCenter);
+      
+      markerElements.forEach(m => {
+        // Convert local position to world position
+        tempV.copy(m.position3D);
+        tempV.applyMatrix4(globeGroup.matrixWorld);
+        
+        // Vector from center of globe to point
+        const normal = tempV.clone().sub(globeCenter).normalize();
+        
+        // If dot product with camera direction is negative, it's facing the camera
+        if (normal.dot(cameraDir) < 0) {
+          m.wrapper.classList.remove('hidden');
+          
+          // Project to 2D screen coordinates
+          tempV.project(camera);
+          const x = (tempV.x *  .5 + .5) * window.innerWidth;
+          const y = (tempV.y * -.5 + .5) * window.innerHeight;
+          
+          m.wrapper.style.left = `${x}px`;
+          m.wrapper.style.top = `${y}px`;
+        } else {
+          m.wrapper.classList.add('hidden');
+        }
+      });
+    }
+
+    // Animation Loop
+    const clock = new THREE.Clock();
+    let zoomCompleted = false;
+    
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      if (targetCameraPos) {
+        // Slow down the lerp factor from 0.05 to 0.015 for a smoother, slower zoom
+        camera.position.lerp(targetCameraPos, 0.015);
+        if (camera.position.distanceTo(targetCameraPos) < 0.05 && !zoomCompleted) {
+          zoomCompleted = true;
+          window.parent.postMessage({ type: 'ZOOM_COMPLETE', country: 'my' }, '*');
+        }
+      } else {
+        zoomCompleted = false;
+      }
+      
+      controls.update();
+      updateMarkers();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

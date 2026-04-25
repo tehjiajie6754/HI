@@ -12,7 +12,9 @@ const ConditionalLayout = ({ children }: ConditionalLayoutProps) => {
   const pathname = usePathname()
   
   const isPreLoginPage = pathname === '/' || pathname === '/login' || pathname === '/register'
-  const isFooterHidden = pathname.startsWith('/onboarding')
+  const isExplorePage = pathname === '/explore'
+  const isItineraryPage = pathname === '/itinerary'
+  const isFooterHidden = pathname.startsWith('/onboarding') || isExplorePage || isItineraryPage
   
   if (isPreLoginPage) {
     return <>{children}</>

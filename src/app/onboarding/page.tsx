@@ -7,6 +7,7 @@ import GradientBackground from "@/components/backgrounds/GradientBackground"
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
+import { saveUserPreferences } from '@/lib/user-preferences'
 
 interface MultiOption {
   id: string
@@ -48,6 +49,7 @@ export default function OnboardingPage() {
   const [answeredMessageIds, setAnsweredMessageIds] = useState<Set<string>>(new Set())
   const [multiSelectState, setMultiSelectState] = useState<Record<string, Set<string>>>({})
   const [textInputState, setTextInputState] = useState<Record<string, string>>({})
+  const [profileFormState, setProfileFormState] = useState<Record<string, string>>({})
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const welcomeTriggeredRef = useRef(false)
@@ -279,9 +281,23 @@ export default function OnboardingPage() {
   }
 
   const finishPreferences = () => {
+    // Persist the latest userData snapshot so the Itinerary planner can read it.
+    setUserData((p: any) => {
+      const next = { ...p }
+      saveUserPreferences({
+        pace: next.pace,
+        budget: next.budget,
+        attractions: next.attractions,
+        activities: next.activities,
+        accommodation: next.accommodation,
+        food: next.food,
+        dietary: next.dietary,
+      })
+      return next
+    })
     setTimeout(() => {
       addBotMessage(
-        '🎉 **All Set!**\n\n✅ **Travel Preferences Saved!**\n\nYour AI Itinerary Planner will now craft trips tailored exactly to your style, interests, and needs.'
+        '🎉 **All Set!**\n\n✅ **Travel Preferences Saved!**\n\nYour AI Itinerary Planner will now craft trips tailored exactly to your style, interests, and needs. Fret not! You can always head to your profile and update your preference'
       )
       setCompletedSteps(prev => new Set([...prev, 'preferences']))
       setTimeout(() => {
@@ -472,52 +488,82 @@ export default function OnboardingPage() {
           </div>
         )
       }
-      case 'form':
+      case 'form': {
+        const isAnswered = answeredMessageIds.has(message.id);
+        const fields = [
+          { l: 'Full Name', p: 'Your full name' },
+          { l: 'Phone', p: '+60 12 345 6789' },
+          { l: 'Nationality', p: 'Malaysian' },
+          { l: 'Passport Number', p: 'A12345678' },
+          { l: 'MBTI', p: 'e.g., INFJ, ENTP' },
+          { l: 'Email Address', p: 'you@example.com' },
+        ];
+        
+        const isFormComplete = fields.every(f => (profileFormState[message.id + f.l] || '').trim() !== '');
+
         return (
           <div className="mt-3">
             {message.text && <div className="text-sm leading-relaxed mb-4 ml-2"><ReactMarkdown>{message.text}</ReactMarkdown></div>}
             <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-200 p-4">
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { l: 'Full Name', p: 'Your full name' },
-                    { l: 'Phone', p: '+60 12 345 6789' },
-                    { l: 'Nationality', p: 'Malaysian' },
-                    { l: 'Passport Number', p: 'A12345678' },
-                    { l: 'MBTI', p: 'e.g., INFJ, ENTP' },
-                    { l: 'Email Address', p: 'you@example.com' },
-                  ].map(f => (
+                  {fields.map(f => (
                     <div key={f.l}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{f.l}</label>
-                      <input type="text" placeholder={f.p} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{f.l} <span className="text-red-500">*</span></label>
+                      <input 
+                        type="text" 
+                        placeholder={f.p} 
+                        value={profileFormState[message.id + f.l] || ''}
+                        onChange={(e) => setProfileFormState(prev => ({ ...prev, [message.id + f.l]: e.target.value }))}
+                        disabled={isAnswered}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isAnswered ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`} 
+                      />
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-end pt-2">
-                  <button onClick={() => { setCompletedSteps(prev => new Set([...prev, 'profile'])); addBotMessage('✅ **Profile saved!** Here\'s your updated checklist:', [], 'checklist') }}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">Save & Continue</button>
-                </div>
+                {!isAnswered && (
+                  <div className="flex justify-end pt-2">
+                    <button 
+                      disabled={!isFormComplete}
+                      onClick={() => { 
+                        setAnsweredMessageIds(prev => new Set([...prev, message.id]));
+                        setCompletedSteps(prev => new Set([...prev, 'profile'])); 
+                        addBotMessage('✅ **Profile saved!** Here\'s your updated checklist:', [], 'checklist') 
+                      }}
+                      className={`px-6 py-2 rounded-lg transition-colors font-medium text-sm ${isFormComplete ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                    >
+                      Save & Continue
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )
+      }
       case 'checklist':
         return (
           <div>
             {message.text && <div className="text-sm leading-relaxed mb-4"><ReactMarkdown>{message.text}</ReactMarkdown></div>}
             <div className="space-y-4 mt-3 w-full">
               {[
-                { id: 'profile', title: '📝 Step 1: Traveller Profile', description: 'Set up your personal details', completed: completedSteps.has('profile'), action: () => handleProfileSetup() },
-                { id: 'preferences', title: '🌍 Step 2: Travel Preferences', description: 'Configure your travel style', completed: completedSteps.has('preferences'), action: () => handlePreferencesSetup() },
-                { id: 'payment', title: '💳 Step 3: Payment Setup', description: 'Add your payment method', completed: completedSteps.has('payment'), action: () => handlePaymentSetup() },
+                { id: 'profile', title: '📝 Step 1: Traveller Profile', description: 'Set up your personal details', completed: completedSteps.has('profile'), locked: false, action: () => handleProfileSetup() },
+                { id: 'preferences', title: '🌍 Step 2: Travel Preferences', description: 'Configure your travel style', completed: completedSteps.has('preferences'), locked: !completedSteps.has('profile'), action: () => handlePreferencesSetup() },
+                { id: 'payment', title: '💳 Step 3: Payment Setup', description: 'Add your payment method', completed: completedSteps.has('payment'), locked: !completedSteps.has('preferences'), action: () => handlePaymentSetup() },
               ].map(item => (
-                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between w-full p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200">
+                <div key={item.id} className={`flex flex-col sm:flex-row sm:items-center justify-between w-full p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 ${item.locked ? 'opacity-60' : ''}`}>
                   <div className="flex flex-col mb-2 sm:mb-0">
                     <span className="text-base font-semibold text-gray-800">{item.title}</span>
                     <span className="text-sm text-gray-600">{item.description}</span>
                   </div>
                   {!item.completed ? (
-                    <button onClick={item.action} className="ml-6 px-6 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors w-fit">Start Now</button>
+                    <button 
+                      onClick={item.action} 
+                      disabled={item.locked}
+                      className={`ml-6 px-6 py-2 text-sm rounded-md transition-colors w-fit ${item.locked ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                    >
+                      {item.locked ? 'Locked 🔒' : 'Start Now'}
+                    </button>
                   ) : (
                     <div className="ml-6 px-5 py-2 bg-gray-400 text-white text-sm rounded-md w-fit font-medium">Done ✓</div>
                   )}
@@ -588,29 +634,29 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative h-[calc(100dvh-64px)] overflow-hidden">
       <GradientBackground />
 
       {/* Skip Onboarding Button */}
-      <div className="absolute top-6 left-16 z-20">
+      <div className="absolute top-4 left-6 z-20">
         <button onClick={() => router.push('/home')} className="bg-white/30 backdrop-blur-md text-gray-600 text-sm font-semibold px-4 py-2 rounded-lg shadow-md hover:bg-white/50 transition-colors">
           Skip Onboarding
         </button>
       </div>
 
-      <div className="relative z-10 flex h-screen">
+      <div className="relative z-10 flex h-full">
         {/* Left Side - Avatar Section */}
-        <div className="w-1/2 flex flex-col items-center justify-center p-8">
-          <h2 className="text-xl md:text-3xl font-bold mb-6">
+        <div className="w-1/2 flex flex-col items-center justify-center p-6 min-h-0">
+          <h2 className="text-xl md:text-3xl font-bold mb-4">
             <span className="bg-gradient-to-r from-blue-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">
               Travel Onboarding Assistant
             </span>
           </h2>
           {/* Avatar Container - Robot Fallback */}
-          <div className="relative mb-8">
-            <div className="w-48 h-48 rounded-full bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center shadow-2xl">
-              <div className="w-44 h-44 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Bot className="w-20 h-20 text-white" />
+          <div className="relative mb-5">
+            <div className="w-36 h-36 md:w-44 md:h-44 rounded-full bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center shadow-2xl">
+              <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Bot className="w-16 h-16 md:w-20 md:h-20 text-white" />
               </div>
             </div>
             {/* Animated rings */}
@@ -619,7 +665,7 @@ export default function OnboardingPage() {
           </div>
 
           {/* Avatar Status */}
-          <div className="text-center mb-4">
+          <div className="text-center">
             <div className="flex items-center justify-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-green-500" />
               <span className="text-xs text-gray-600">Assistant Ready</span>
@@ -633,7 +679,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Right Side - Chat Interface */}
-        <div className="w-1/2 flex flex-col px-8 py-6">
+        <div className="w-1/2 flex flex-col px-6 py-4 min-h-0">
           {/* Chat Messages Area */}
           <div className="flex-1 overflow-y-auto mb-4 space-y-4 min-h-0">
             <div className="space-y-4">
@@ -679,7 +725,7 @@ export default function OnboardingPage() {
           </div>
 
           {/* Chat Input Area */}
-          <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl border border-white/30 p-6">
+          <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl border border-white/30 p-4">
             {selectedFiles.length > 0 && (
               <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="flex flex-wrap gap-2">
@@ -724,7 +770,6 @@ export default function OnboardingPage() {
             </div>
 
             <input ref={fileInputRef} type="file" multiple onChange={handleFileSelect} className="hidden" accept="*/*" />
-            <p className="text-xs text-gray-500 mt-2 text-center">Type your message or select an option above</p>
           </div>
         </div>
       </div>

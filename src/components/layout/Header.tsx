@@ -13,7 +13,7 @@ import LanguageToggle from '@/components/ui/LanguageToggle'
 
 const navigation: NavItem[] = [
   { name: 'nav.home', href: '/home' },
-  { name: 'nav.plan-trip', href: '/onboarding' },
+  { name: 'nav.plan-trip', href: '/explore' },
 ]
 
 export default function Header() {

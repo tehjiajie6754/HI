@@ -34,7 +34,7 @@ export default function Footer() {
             <h4 className="text-sm font-semibold text-[var(--color-white)] mb-4 uppercase tracking-wider">Explore</h4>
             <ul className="space-y-2">
               {[
-                { label: 'Plan a Trip', href: '/onboarding' },
+                { label: 'Plan a Trip', href: '/explore' },
                 { label: 'Destinations', href: '/home' },
                 { label: 'Travel Guides', href: '/home' },
                 { label: 'About Us', href: '/home' },
