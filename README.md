@@ -19,7 +19,7 @@
 <https://docs.google.com/document/d/1RHej2zy8gyUwJCfuVY_QarQcGtbmYxXc/edit?usp=sharing&ouid=101685104398206811215&rtpof=true&sd=true>
 
 ## Pitch Deck
-
+<https://drive.google.com/drive/folders/1-oVd0pSacvF5-r2f7ecmDIR5oxceTYxf>
 
 
 ## Tech Stack
