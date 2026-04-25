@@ -1,5 +1,3 @@
-# Video: <https://drive.google.com/drive/folders/1-oVd0pSacvF5-r2f7ecmDIR5oxceTYxf>
-
 # Zen Travel ✈️
 
 ## By Team : T-Junction
@@ -11,6 +9,8 @@
 ## Product Requirement Document
 <https://docs.google.com/document/d/13oDJlkZnFhT54YdPXY2I57fVoA7lLLFp/edit?usp=drive_link&ouid=101685104398206811215&rtpof=true&sd=true>
 
+# Video
+<https://drive.google.com/drive/folders/1-oVd0pSacvF5-r2f7ecmDIR5oxceTYxf>
 
 ## Software Analysis Design
 <https://docs.google.com/document/d/17rlD4E5KXsWhKqCbmm0QINeD4ksw4JjW/edit?usp=sharing&ouid=101685104398206811215&rtpof=true&sd=true>
