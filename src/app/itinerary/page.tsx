@@ -1254,6 +1254,7 @@ Please update the FULL itinerary JSON to include "${activityName}" suitably time
           onClose={() => setShowVisaModal(false)}
           tripData={tripData}
           destination="Malaysia"
+          itinerary={itinerary}
         />
       )}
 

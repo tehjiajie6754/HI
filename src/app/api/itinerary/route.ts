@@ -1,15 +1,10 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Primary + fallback models. If 2.5-flash is overloaded (503) we try lighter/older
-// siblings before giving up. The search-grounding tool field name differs across
-// model families, so each entry carries its own tools config.
+// Use gemini-2.5-flash only for itinerary planning.
 type ModelSpec = { name: string; tools: any[] };
 const MODEL_CHAIN: ModelSpec[] = [
-  { name: 'gemini-2.5-flash',      tools: [{ googleSearch: {} }] },
-  { name: 'gemini-2.5-flash-lite', tools: [{ googleSearch: {} }] },
-  { name: 'gemini-2.0-flash',      tools: [{ googleSearch: {} }] },
-  { name: 'gemini-1.5-flash',      tools: [{ googleSearchRetrieval: {} }] },
+  { name: 'gemini-2.5-flash', tools: [{ googleSearch: {} }] },
 ];
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -29,7 +24,7 @@ export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
 
-    const apiKey = 'AIzaSyB8ehkFKv-9xlPhCIkR02FAm0wcTyFonBk';
+    const apiKey = 'AIzaSyBeeHoaNp-ZnZdeJWyfz6LEm6OR0dCGYHs';
     const genAI = new GoogleGenerativeAI(apiKey);
 
     // Extract system prompt (if any)

@@ -74,6 +74,79 @@
       z-index: 20;
     }
     
+    /* ---- Conflict zone marker: charcoal/gold brand theme ---- */
+    .marker-wrapper.conflict .marker {
+      background: #1A1A2E;
+      border: 2px solid #C9A84C;
+      box-shadow: 0px 4px 14px rgba(201, 168, 76, 0.5);
+    }
+    
+    .conflict-pulse {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: rgba(201, 168, 76, 0.3);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -40%) rotate(45deg);
+      animation: conflictPulse 2s ease-out infinite;
+      pointer-events: none;
+    }
+    
+    @keyframes conflictPulse {
+      0%   { transform: translate(-50%, -40%) rotate(45deg) scale(1);   opacity: 0.8; }
+      70%  { transform: translate(-50%, -40%) rotate(45deg) scale(2.1); opacity: 0; }
+      100% { transform: translate(-50%, -40%) rotate(45deg) scale(2.1); opacity: 0; }
+    }
+    
+    .marker-wrapper.conflict .tooltip {
+      background: #1A1A2E;
+      border: 1px solid rgba(201, 168, 76, 0.3);
+    }
+    
+    .marker-wrapper.conflict .tooltip::after {
+      border-color: #1A1A2E transparent transparent transparent;
+    }
+    
+    .marker-wrapper.conflict .tooltip .conflict-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(201, 168, 76, 0.12);
+      border: 1px solid rgba(201, 168, 76, 0.35);
+      color: #C9A84C;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    /* Small red dot — universally understood "live/active" status signal */
+    .conflict-dot {
+      width: 7px;
+      height: 7px;
+      background: #e74c3c;
+      border-radius: 50%;
+      animation: blink 1s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+    
+    .marker-wrapper.conflict .tooltip .btn {
+      background: #C9A84C;
+      color: #1A1A2E;
+    }
+    /* ------------------------------------------------- */
+
+    
     .tooltip {
       position: absolute;
       bottom: calc(100% + 12px);
@@ -123,6 +196,7 @@
       padding: 6px 14px;
       border-radius: 6px;
       text-transform: uppercase;
+      cursor: pointer;
     }
     
     .tooltip::after {
@@ -282,6 +356,9 @@
         names: { EN: 'Vietnam', ZH: '越南', BM: 'Vietnam' } },
       { id: 'ph', code: 'ph', lat: 12.8797, lon: 121.7740, 
         names: { EN: 'Philippines', ZH: '菲律宾', BM: 'Filipina' } },
+      // ⚠️ Conflict zone marker
+      { id: 'ua', code: 'ua', lat: 48.3794, lon: 31.1656, conflict: true,
+        names: { EN: 'Ukraine', ZH: '乌克兰', BM: 'Ukraine' } },
     ];
 
     const markerElements = [];
@@ -316,13 +393,21 @@
     }
 
     markersData.forEach(data => {
+      const isConflict = !!data.conflict;
       const wrapper = document.createElement('div');
-      wrapper.className = 'marker-wrapper hidden';
+      wrapper.className = `marker-wrapper hidden${isConflict ? ' conflict' : ''}`;
       
       const marker = document.createElement('div');
       marker.className = 'marker';
       // Use flagcdn.com to load high-quality flag images based on country code
       marker.innerHTML = `<div class="flag"><img src="https://flagcdn.com/w40/${data.code}.png" alt="${data.id} flag" /></div>`;
+      
+      // Add pulsing ring for conflict markers
+      if (isConflict) {
+        const pulse = document.createElement('div');
+        pulse.className = 'conflict-pulse';
+        marker.appendChild(pulse);
+      }
       
       const tooltip = document.createElement('div');
       tooltip.className = 'tooltip';
@@ -331,11 +416,20 @@
       const otherLangs = ['EN', 'ZH', 'BM'].filter(l => l !== currentLang);
       const subName = `${data.names[otherLangs[0]]} · ${data.names[otherLangs[1]]}`;
 
-      tooltip.innerHTML = `
-        <h3>${mainName}</h3>
-        <p>${subName}</p>
-        <div class="btn">Available</div>
-      `;
+      if (isConflict) {
+        tooltip.innerHTML = `
+          <div class="conflict-badge"><span class="conflict-dot"></span>Active Conflict</div>
+          <h3>${mainName}</h3>
+          <p>${subName}</p>
+          <div class="btn">⚠ View Advisory</div>
+        `;
+      } else {
+        tooltip.innerHTML = `
+          <h3>${mainName}</h3>
+          <p>${subName}</p>
+          <div class="btn">Available</div>
+        `;
+      }
       
       wrapper.appendChild(tooltip);
       wrapper.appendChild(marker);
@@ -350,6 +444,14 @@
           const worldPos = position3D.clone().applyMatrix4(globeGroup.matrixWorld).normalize();
           // Set target camera position closer (1.5x radius instead of 2.0x)
           targetCameraPos = worldPos.multiplyScalar(1.5); 
+        } else if (isConflict) {
+          // Notify parent to open the conflict advisory panel
+          window.parent.postMessage({
+            type: 'CONFLICT_COUNTRY_CLICK',
+            countryId: data.id,
+            countryCode: data.code,
+            countryName: data.names['EN'],
+          }, '*');
         }
       });
       

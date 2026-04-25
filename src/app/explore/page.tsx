@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Compass, Search, ChevronLeft, MapPin, Plane } from 'lucide-react'
+import { Compass, Search, ChevronLeft, Plane, AlertTriangle, X, ExternalLink, Shield, Loader2 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 // Dynamically import the map component so it only loads on the client
@@ -13,7 +13,260 @@ const PenangInteractiveMap = dynamic(
   { ssr: false }
 )
 
+// --- Types ---
+interface NewsArticle {
+  title: string
+  description: string
+  url: string
+  publishedAt: string
+  source: { name: string }
+}
+
+interface ConflictData {
+  country: string
+  countryCode: string
+  articles: NewsArticle[]
+  aiAnalysis: string
+  recommended: boolean
+  safetyLevel: string
+  lastUpdated: string
+}
+
+interface ConflictCountry {
+  id: string
+  code: string
+  name: string
+}
+
+// --- Conflict Advisory Modal ---
+const ConflictAdvisoryModal = ({ country, onClose }: { country: ConflictCountry; onClose: () => void }) => {
+  const [data, setData] = useState<ConflictData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetch(
+          `/api/conflict-news?country=${encodeURIComponent(country.name)}&code=${country.code}`
+        )
+        if (!res.ok) throw new Error('Failed to fetch')
+        const json = await res.json()
+        setData(json)
+      } catch (e) {
+        setError('Unable to load data. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [country])
+
+  const formatDate = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    } catch { return '' }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      style={{ background: 'rgba(26,26,46,0.75)', backdropFilter: 'blur(10px)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.88, opacity: 0, y: 40 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.92, opacity: 0, y: 20 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+        className="relative w-full max-w-2xl max-h-[88vh] overflow-hidden rounded-3xl flex flex-col"
+        style={{ background: '#1A1A2E', border: '1px solid rgba(201,168,76,0.25)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="flex items-start gap-4 p-6 pb-4 flex-shrink-0"
+          style={{
+            borderBottom: '1px solid rgba(232,228,223,0.1)',
+            background: 'linear-gradient(135deg, rgba(201,168,76,0.08) 0%, transparent 100%)',
+          }}
+        >
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.35)' }}
+          >
+            <AlertTriangle className="w-6 h-6" style={{ color: '#C9A84C' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-bold tracking-widest uppercase" style={{ color: '#C9A84C' }}>
+                Active Conflict Zone
+              </span>
+              {/* Small red dot — universally understood live/active status */}
+              <span className="w-2 h-2 rounded-full animate-pulse inline-block" style={{ background: '#e74c3c' }} />
+            </div>
+            <div className="flex items-center gap-3">
+              <img
+                src={`https://flagcdn.com/w40/${country.code}.png`}
+                alt={`${country.name} flag`}
+                className="w-8 h-6 object-cover rounded shadow"
+              />
+              <h2 className="text-2xl font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>
+                {country.name}
+              </h2>
+            </div>
+            <p className="text-xs mt-1" style={{ color: 'rgba(232,228,223,0.45)' }}>
+              {data ? `Last updated: ${formatDate(data.lastUpdated)}` : 'Loading latest intelligence…'}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors"
+            style={{ color: 'rgba(232,228,223,0.5)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(232,228,223,0.08)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body — scrollable */}
+        <div className="overflow-y-auto flex-1 p-6 space-y-5">
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+              <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#C9A84C' }} />
+              <p className="text-sm" style={{ color: 'rgba(232,228,223,0.4)' }}>
+                Fetching latest news &amp; AI analysis…
+              </p>
+            </div>
+          )}
+
+          {error && (
+            <div
+              className="rounded-xl p-4 text-center"
+              style={{ background: 'rgba(232,228,223,0.05)', border: '1px solid rgba(232,228,223,0.12)' }}
+            >
+              <p className="text-sm" style={{ color: '#E8E4DF' }}>{error}</p>
+            </div>
+          )}
+
+          {data && !loading && (
+            <>
+              {/* AI Safety Analysis */}
+              <div
+                className="rounded-2xl p-5"
+                style={{ background: 'rgba(201,168,76,0.07)', border: '1px solid rgba(201,168,76,0.2)' }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield className="w-4 h-4" style={{ color: '#C9A84C' }} />
+                  <span className="text-xs font-bold tracking-widest uppercase" style={{ color: '#C9A84C' }}>
+                    Zen Travel AI Advisory
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span
+                    className="text-xs font-bold px-3 py-1 rounded-full"
+                    style={{
+                      background: 'rgba(201,168,76,0.15)',
+                      color: '#C9A84C',
+                      border: '1px solid rgba(201,168,76,0.4)',
+                    }}
+                  >
+                    ⚠ NOT RECOMMENDED FOR TRAVEL
+                  </span>
+                  <span className="text-xs font-semibold" style={{ color: 'rgba(232,228,223,0.45)' }}>
+                    Safety Level: {data.safetyLevel}
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed" style={{ color: '#E8E4DF' }}>
+                  {data.aiAnalysis}
+                </p>
+              </div>
+
+              {/* News Feed */}
+              <div>
+                <h3
+                  className="text-xs font-bold tracking-widest uppercase mb-3"
+                  style={{ color: 'rgba(232,228,223,0.35)' }}
+                >
+                  Recent News
+                </h3>
+                <div className="space-y-3">
+                  {data.articles.map((article, i) => (
+                    <motion.a
+                      key={i}
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.07 }}
+                      className="flex gap-3 p-4 rounded-xl group cursor-pointer block"
+                      style={{
+                        background: 'rgba(232,228,223,0.04)',
+                        border: '1px solid rgba(232,228,223,0.08)',
+                      }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-xs font-semibold" style={{ color: 'rgba(201,168,76,0.6)' }}>
+                            {article.source.name} · {formatDate(article.publishedAt)}
+                          </span>
+                          <ExternalLink
+                            className="w-3 h-3 flex-shrink-0 opacity-0 group-hover:opacity-50 transition-opacity"
+                            style={{ color: '#C9A84C' }}
+                          />
+                        </div>
+                        <p
+                          className="text-sm font-semibold leading-snug mb-1 transition-colors"
+                          style={{ color: '#FAFAFA' }}
+                        >
+                          {article.title}
+                        </p>
+                        <p className="text-xs leading-relaxed line-clamp-2" style={{ color: 'rgba(232,228,223,0.4)' }}>
+                          {article.description}
+                        </p>
+                      </div>
+                    </motion.a>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div
+          className="flex-shrink-0 flex items-center justify-between px-6 py-4"
+          style={{ borderTop: '1px solid rgba(232,228,223,0.08)', background: 'rgba(0,0,0,0.15)' }}
+        >
+          <p className="text-xs" style={{ color: 'rgba(232,228,223,0.25)' }}>
+            Powered by Zen Travel AI · News via GNews
+          </p>
+          <button
+            onClick={onClose}
+            className="text-sm font-semibold px-5 py-2 rounded-full transition-all"
+            style={{
+              background: 'rgba(201,168,76,0.12)',
+              color: '#C9A84C',
+              border: '1px solid rgba(201,168,76,0.25)',
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 // --- Penang Map Overlay Component ---
+
 const PenangMapOverlay = ({ onClose, originPos }: { onClose: () => void, originPos: {x: string, y: string} | null }) => {
   const router = useRouter();
   const [showCalendar, setShowCalendar] = useState(false);
@@ -339,6 +592,7 @@ export default function ExplorePage() {
   const [showMalaysiaMap, setShowMalaysiaMap] = useState(false)
   const [selectedState, setSelectedState] = useState<string | null>(null)
   const [zoomOrigin, setZoomOrigin] = useState<{x: string, y: string} | null>(null)
+  const [conflictCountry, setConflictCountry] = useState<ConflictCountry | null>(null)
 
   const availableCountries = [
     { id: 'fr', name: 'France', nameZh: '法国', nameBm: 'Perancis' },
@@ -403,18 +657,25 @@ export default function ExplorePage() {
     }
   }, [lang]);
 
-  // Listen for messages from the Earth iframe (e.g., zoom complete)
+  // Listen for messages from the Earth iframe (e.g., zoom complete, conflict click)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'ZOOM_COMPLETE') {
         if (event.data.country === 'my') {
-          setShowMalaysiaMap(true);
+          setShowMalaysiaMap(true)
         }
       }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+      if (event.data && event.data.type === 'CONFLICT_COUNTRY_CLICK') {
+        setConflictCountry({
+          id: event.data.countryId,
+          code: event.data.countryCode,
+          name: event.data.countryName,
+        })
+      }
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
 
   const handleCloseMap = () => {
     setShowMalaysiaMap(false);
@@ -428,6 +689,15 @@ export default function ExplorePage() {
 
   return (
     <div className="relative h-[calc(100vh-64px)] w-full overflow-hidden bg-[#f8f9fa]">
+      <AnimatePresence>
+        {conflictCountry && (
+          <ConflictAdvisoryModal
+            key={conflictCountry.id}
+            country={conflictCountry}
+            onClose={() => setConflictCountry(null)}
+          />
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {showMalaysiaMap && !selectedState && (
           <MalaysiaMapOverlay onClose={handleCloseMap} onStateClick={handleStateClick} />
