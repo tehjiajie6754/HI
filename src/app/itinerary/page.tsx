@@ -7,7 +7,7 @@ import {
   Send, Loader2, ArrowLeft, MapPin, Utensils, Car, Bed,
   X, Backpack, Clock, Lightbulb, Tag, Shirt, HeartPulse,
   PawPrint, Sparkles, DollarSign, ArrowRight, Navigation, Footprints, ExternalLink,
-  FileCheck, CloudSun, Check, AlertTriangle, Camera,
+  FileCheck, CloudSun, Check, AlertTriangle, Camera, Wallet,
 } from 'lucide-react'
 import VisaCheckModal from '@/components/visa/VisaCheckModal'
 import ReasoningPanel, { ReasoningStep } from '@/components/itinerary/ReasoningPanel'
@@ -287,6 +287,17 @@ function WhatToBringModal({
                           <span className="text-sm text-gray-700">{h}</span>
                         </div>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* Transaction & Wallet */}
+                  <div>
+                    <SectionHeader icon={<Wallet className="w-4 h-4 text-purple-500" />} title="Transaction & Wallet" color="border-purple-100" />
+                    <div className="grid grid-cols-1 gap-2">
+                      <div className="flex items-center gap-2 bg-purple-50/40 border border-purple-100/60 rounded-lg px-3 py-2.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0"></span>
+                        <span className="text-sm text-gray-700">Alipay can be used in Malaysia</span>
+                      </div>
                     </div>
                   </div>
 
@@ -1018,7 +1029,7 @@ After generating the JSON, add a brief friendly conversational message below it.
     return {
       activate: (i: number) => patch(i, { status: 'active' }),
       complete: (i: number, extras?: Partial<ReasoningStep>) => patch(i, { status: 'done', ...extras }),
-      warn:     (i: number, extras?: Partial<ReasoningStep>) => patch(i, { status: 'warn', ...extras }),
+      warn: (i: number, extras?: Partial<ReasoningStep>) => patch(i, { status: 'warn', ...extras }),
       finalize: () => {
         setMessages(prev => {
           const mi = reasoningMsgIndex.current
@@ -1127,10 +1138,10 @@ After generating the JSON, add a brief friendly conversational message below it.
     } catch {
       // Fallback inline data if API fails
       weatherDays = [
-        { dayNum:1, date:'2026-05-16', label:'Sat, May 16', weatherCode:80, tempMax:33, tempMin:27, precipMm:9.2,  icon:'🌦️', description:'Rain Showers',   suitability:'fair', tip:'Afternoon showers. Go before noon.' },
-        { dayNum:2, date:'2026-05-17', label:'Sun, May 17', weatherCode:2,  tempMax:34, tempMin:28, precipMm:1.0,  icon:'⛅', description:'Partly Cloudy',  suitability:'good', tip:'Good conditions with slight shower risk.' },
-        { dayNum:3, date:'2026-05-18', label:'Mon, May 18', weatherCode:1,  tempMax:35, tempMin:28, precipMm:0.2,  icon:'☀️', description:'Clear & Sunny',  suitability:'best', tip:'Excellent day — go early to beat the heat.' },
-        { dayNum:4, date:'2026-05-19', label:'Tue, May 19', weatherCode:95, tempMax:31, tempMin:27, precipMm:20.5, icon:'⛈️', description:'Thunderstorm',    suitability:'avoid', tip:'Thunderstorm risk. Must depart by 5 PM.' },
+        { dayNum: 1, date: '2026-05-16', label: 'Sat, May 16', weatherCode: 80, tempMax: 33, tempMin: 27, precipMm: 9.2, icon: '🌦️', description: 'Rain Showers', suitability: 'fair', tip: 'Afternoon showers. Go before noon.' },
+        { dayNum: 2, date: '2026-05-17', label: 'Sun, May 17', weatherCode: 2, tempMax: 34, tempMin: 28, precipMm: 1.0, icon: '⛅', description: 'Partly Cloudy', suitability: 'good', tip: 'Good conditions with slight shower risk.' },
+        { dayNum: 3, date: '2026-05-18', label: 'Mon, May 18', weatherCode: 1, tempMax: 35, tempMin: 28, precipMm: 0.2, icon: '☀️', description: 'Clear & Sunny', suitability: 'best', tip: 'Excellent day — go early to beat the heat.' },
+        { dayNum: 4, date: '2026-05-19', label: 'Tue, May 19', weatherCode: 95, tempMax: 31, tempMin: 27, precipMm: 20.5, icon: '⛈️', description: 'Thunderstorm', suitability: 'avoid', tip: 'Thunderstorm risk. Must depart by 5 PM.' },
       ]
       stream.warn(2, {
         details: ['Live fetch failed — using Penang May climate estimates.', ...weatherDays.map(d => `${d.label}: ${d.icon} ${d.description}`)],
@@ -1147,14 +1158,14 @@ After generating the JSON, add a brief friendly conversational message below it.
     stream.complete(3, {
       details: allBad
         ? [
-            'All 4 days show rain or thunderstorm risk.',
-            `${activityName} is fully outdoor — visit not recommended.`,
-            'Will suggest indoor alternatives instead.',
-          ]
+          'All 4 days show rain or thunderstorm risk.',
+          `${activityName} is fully outdoor — visit not recommended.`,
+          'Will suggest indoor alternatives instead.',
+        ]
         : [
-            bestDay ? `✓ Day ${bestDay.dayNum} (${bestDay.label}) is the top pick — ${bestDay.description}.` : '',
-            ...suitableDays.map(d => `Day ${d.dayNum} (${d.label}): ${d.suitability.toUpperCase()}`),
-          ].filter(Boolean),
+          bestDay ? `✓ Day ${bestDay.dayNum} (${bestDay.label}) is the top pick — ${bestDay.description}.` : '',
+          ...suitableDays.map(d => `Day ${d.dayNum} (${d.label}): ${d.suitability.toUpperCase()}`),
+        ].filter(Boolean),
     })
     await wait(200)
 
@@ -1197,14 +1208,14 @@ After generating the JSON, add a brief friendly conversational message below it.
     if (chosenDayNum === -1) {
       setMessages(prev => [
         ...prev,
-        { role: 'user' as const,      content: 'Skip it — keep the current plan.' },
+        { role: 'user' as const, content: 'Skip it — keep the current plan.' },
         { role: 'assistant' as const, content: "No problem! I'll keep your original itinerary as-is." },
       ])
       return
     }
 
     const chosen = weatherDays.find(d => d.dayNum === chosenDayNum)
-    const ack: ChatMessage     = { role: 'user',   content: `Add ${activityName} to Day ${chosenDayNum} (${chosen?.label ?? ''}).` }
+    const ack: ChatMessage = { role: 'user', content: `Add ${activityName} to Day ${chosenDayNum} (${chosen?.label ?? ''}).` }
     const reminder: ChatMessage = {
       role: 'system',
       content: `The user wants to add "${activityName}" to Day ${chosenDayNum} of the itinerary.
@@ -1274,6 +1285,17 @@ Re-output the ENTIRE itinerary as valid JSON, then follow it with a short friend
     if (awaitingFortCornwallisConfirm && /yes/i.test(input.trim())) {
       setAwaitingFortCornwallisConfirm(false)
       addFortCornwallisViaAI()
+      return
+    }
+
+    if (/delay.*one hour/i.test(input) && /hotel/i.test(input)) {
+      const systemReminder: ChatMessage = {
+        role: 'system',
+        content: `The user's flight has been delayed by one hour and they asked to rearrange the timeline and inform the hotel.
+Please update the FULL itinerary JSON to delay all activities on Day 1 by exactly one hour. Keep all other days unchanged. Re-output the ENTIRE itinerary as valid JSON.
+After the JSON, your text response to the user MUST be EXACTLY: "Sure! I have rearranged the timeline and delayed the activities in Day 1 by one hour.\n\nYour Auto Email token limit reached, we will send the email once the token refresh."`
+      }
+      generateItinerary([...newMessages, systemReminder])
       return
     }
 
@@ -1673,10 +1695,10 @@ Re-output the ENTIRE itinerary as valid JSON, then follow it with a short friend
                 const { activityName, weatherByDay, resolved } = msg.dayPicker
                 const isResolved = resolved !== undefined
                 const SUIT: Record<string, { card: string; badge: string }> = {
-                  best:  { card: 'bg-emerald-50  border-emerald-200',  badge: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
-                  good:  { card: 'bg-blue-50     border-blue-200',     badge: 'bg-blue-100    text-blue-700    border-blue-300'    },
-                  fair:  { card: 'bg-amber-50    border-amber-200',    badge: 'bg-amber-100   text-amber-700   border-amber-300'   },
-                  avoid: { card: 'bg-red-50      border-red-200',      badge: 'bg-red-100     text-red-700     border-red-300'     },
+                  best: { card: 'bg-emerald-50  border-emerald-200', badge: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
+                  good: { card: 'bg-blue-50     border-blue-200', badge: 'bg-blue-100    text-blue-700    border-blue-300' },
+                  fair: { card: 'bg-amber-50    border-amber-200', badge: 'bg-amber-100   text-amber-700   border-amber-300' },
+                  avoid: { card: 'bg-red-50      border-red-200', badge: 'bg-red-100     text-red-700     border-red-300' },
                 }
                 return (
                   <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
@@ -1693,8 +1715,8 @@ Re-output the ENTIRE itinerary as valid JSON, then follow it with a short friend
                             {isResolved && resolved !== -1
                               ? `Adding to Day ${resolved} — regenerating your itinerary…`
                               : isResolved
-                              ? 'Skipped — itinerary unchanged.'
-                              : 'Which day would you like to visit?'}
+                                ? 'Skipped — itinerary unchanged.'
+                                : 'Which day would you like to visit?'}
                           </p>
                         </div>
                       </div>
